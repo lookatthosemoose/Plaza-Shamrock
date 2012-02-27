@@ -1,0 +1,262 @@
+
+blockquote {
+  border-color: #eeeeee;
+}
+
+a {
+  color: #2c70c5;
+}
+
+.form-submit {
+  background-color: #eeeeee;
+}
+
+.site-slogan {
+}
+
+body {
+  background-color: #2c70c5;
+}
+
+.stack-breadcrumb {
+}
+
+.stack-breadcrumb a {
+}
+
+.comment > .links {
+}
+
+.stack-navigation {
+  background-color: #333333;
+  color: #8bbfff;
+}
+
+.stack-banner {
+  color: #333333;
+}
+
+.wrapper-content {
+  background-color: #ffffff;
+  border-color: #eeeeee;
+}
+
+.sidebar .block {
+  border-color: #eeeeee;
+}
+
+.wrapper-footer {
+  background-color: #333333;
+  color: #ffffff;
+}
+
+.wrapper-footer h2 {
+  color: #8bbfff;
+  border-color: #666666;
+}
+
+.wrapper-footer a:hover {
+  color: #ffffff;
+}
+
+.stack-messages a {
+  color: #333333;
+}
+
+.node .meta {
+}
+
+#forum thead tr th {
+  background-color: #eeeeee;
+  border-color: #eeeeee;
+}
+
+.forum td {
+  color: #333333;
+}
+
+.forum table {
+}
+
+#block-feedback-feedback a {
+  background-color: #23496b;
+  color: #ffffff;
+  border-color: #ffffff;
+}
+
+.rb-slides {
+}
+
+#block-feedback-feedback a:hover {
+  background-color: #666666;
+}
+
+.form-submit + input {
+  background-color: #ffffff;
+}
+
+.menu-dropdown .menu .menu li {
+  background-color: #333333;
+}
+
+h1 {
+  color: #23496b;
+}
+
+h2 {
+  color: #23496b;
+}
+
+h3 {
+  color: #23496b;
+}
+
+h4 {
+  color: #23496b;
+}
+
+h5 {
+  color: #333333;
+}
+
+h6 {
+  color: #333333;
+}
+
+a:hover {
+  color: #666666;
+}
+
+h1 a {
+  color: #23496b;
+}
+
+h2 a {
+  color: #23496b;
+}
+
+h3 a {
+  color: #23496b;
+}
+
+h4 a {
+  color: #23496b;
+}
+
+h5 a {
+  color: #23496b;
+}
+
+h6 a {
+  color: #23496b;
+}
+
+.forum th {
+  color: #333333;
+}
+
+.forum th a {
+  color: #333333;
+}
+
+.forum td a {
+  color: #333333;
+}
+
+.page {
+  color: #333333;
+}
+
+.wrapper-footer h1 {
+  color: #8bbfff;
+}
+
+.wrapper-footer h3 {
+  color: #8bbfff;
+}
+
+.wrapper-footer h4 {
+  color: #8bbfff;
+}
+
+.wrapper-footer h5 {
+  color: #8bbfff;
+}
+
+.wrapper-footer a {
+  color: #ffffff;
+}
+
+.wrapper-header a:hover {
+  color: #8bbfff;
+}
+
+.wrapper-header {
+  color: #ffffff;
+}
+
+.wrapper-header a {
+  color: #ffffff;
+}
+
+.stack-navigation .menu li a:hover {
+  color: #8bbfff;
+}
+
+.stack-navigation .menu li a.active {
+  color: #8bbfff;
+}
+
+.stack-navigation .menu li a.active-trail {
+  color: #8bbfff;
+}
+
+.menu-dropdown .menu .expanded:hover > a {
+  color: #8bbfff;
+}
+
+.menu-dropdown .menu .menu a.active {
+}
+
+.menu-dropdown .menu .active-trail:hover > a {
+  color: #8bbfff;
+}
+
+.menu-dropdown .menu .menu .active-trail > a {
+}
+
+.menu-dropdown .menu .menu li:hover > a {
+  color: #8bbfff;
+}
+
+.messages {
+}
+
+.messages ul {
+}
+
+.messages ul li {
+}
+
+.forum .created {
+}
+
+.forum .description {
+}
+
+.forum .title {
+}
+
+.forum .topics {
+}
+
+.forum .posts {
+}
+
+.comment {
+}
+
+.comment-wrapper h2 {
+}
+
+
