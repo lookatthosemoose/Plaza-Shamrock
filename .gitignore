@@ -4,3 +4,8 @@ sites/*/settings*.php
 # Ignore paths that contain user-generated content.
 sites/*/files
 sites/*/private
+<<<<<<< HEAD
+=======
+.buildpath
+.settings
+>>>>>>> 2d4cc02a1847744e3d8a495ee97ea4ed8c18c302

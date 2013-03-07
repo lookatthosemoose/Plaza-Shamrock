@@ -20,7 +20,11 @@ ErrorDocument 404 /index.php
 DirectoryIndex index.php index.html index.htm
 
 # Override PHP settings that cannot be changed at runtime. See
+<<<<<<< HEAD
 # sites/default/default.settings.php and drupal_environment_initialize() in
+=======
+# sites/default/default.settings.php and drupal_initialize_variables() in
+>>>>>>> 2d4cc02a1847744e3d8a495ee97ea4ed8c18c302
 # includes/bootstrap.inc for settings that can be changed at runtime.
 
 # PHP 5, Apache 1 and 2.
