@@ -1,8 +1,15 @@
-/* $Id: form_builder.css,v 1.13 2010/12/29 21:15:24 quicksketch Exp $ */
+/**
+ * @file
+ * Styles required for the basic functionality of the Form Builder interface.
+ */
 
 #form-builder-wrapper {
   overflow: hidden;
   padding: 10px 0;
+}
+
+#form-builder-wrapper h3.form-builder-title {
+  margin: 0;
 }
 
 #form-builder-wrapper.with-palette #form-builder-fields {
@@ -16,6 +23,7 @@
   margin-right: 270px;
   padding-right: 9px;
   border-right: 1px solid #CCC;
+  position: relative;
 }
 
 #center #form-builder form,
@@ -78,11 +86,6 @@ div.form-builder-element .form-builder-disable {
   left: 0;
 }
 
-.form-builder-placeholder.over,
-.form-builder-empty-placeholder.over {
-  background: #f0f0f0;
-}
-
 /* Empty fieldsets */
 #form-builder fieldset {
   padding-bottom: 20px;
@@ -105,6 +108,31 @@ div.form-builder-empty-placeholder span {
   margin: 40px;
 }
 
+/* Placeholders for drop position */
+div.form-builder-placeholder {
+  height: 60px;
+  margin-top: -30px;
+  position: absolute;
+  width: 100%;
+}
+
+div.form-builder-placeholder-hover {
+  margin: 0;
+  position: relative;
+  border: 1px dashed #999;
+}
+
+/* This affects the fieldset placeholder text on hover */
+div.form-builder-placeholder-hover span {
+  visibility: hidden;
+}
+
+/* The item being dragged */
+#form-builder .ui-draggable-dragging {
+  width: 100%;
+}
+
+/* Title bar for form builder items */
 div.form-builder-title-bar {
   position: relative;
   z-index: 10;
@@ -114,11 +142,11 @@ div.form-builder-title-bar {
   border-bottom: none;
 }
 
-div.form-builder-title-bar {
+div.ui-draggable div.form-builder-title-bar {
   display: none;
 }
 
-div.form-builder-title-bar {
+div.ui-draggable div.form-builder-title-bar {
   cursor: move;
 }
 
@@ -128,9 +156,14 @@ span.form-builder-links {
   z-index: 40;
 }
 
-div.form-builder-hover > div.form-builder-title-bar,
-div.form-builder-active > div.form-builder-title-bar {
+div.form-builder-hover div.form-builder-title-bar,
+div.form-builder-active div.form-builder-title-bar {
   display: block;
+}
+
+div.form-builder-hover div.form-builder-wrapper div.form-builder-title-bar,
+div.form-builder-active div.form-builder-wrapper div.form-builder-title-bar {
+  display: none;
 }
 
 span.form-builder-links a.remove,
@@ -172,6 +205,8 @@ span.form-builder-links a.progress:hover {
 #form-builder ul.form-builder-tabs {
   margin: 0;
   padding: 0;
+  float: left; /* RTL */
+  position: relative;
 }
 
 #form-builder ul.form-builder-tabs li {
@@ -194,8 +229,26 @@ span.form-builder-links a.progress:hover {
   margin-left: -1px;
   border-left: 1px solid #999;
   border-top: 1px dashed #999;
-  border-bottom: 1px solid #ebf4fa;
-  background: #ebf4fa;
+  border-bottom: 1px solid #ffffff;
+  background: #ffffff;
+}
+
+#form-builder fieldset.form-builder-group {
+  float: left; /* RTL */
+  width: 100%;
+  padding: 0;
+  margin: 0;
+  border: none;
+  border-top: 1px solid #CCC;
+}
+
+#form-builder fieldset.form-builder-group .fieldset-wrapper {
+  padding: 10px 10px 0;
+}
+
+#form-builder fieldset.form-builder-group .form-item {
+  padding: 0;
+  margin: 0 0 10px;
 }
 
 #form-builder-field-configure .form-submit {
@@ -208,12 +261,6 @@ span.form-builder-links a.progress:hover {
   font-size: 80%;
   float: right;
   padding: 6px 10px;
-}
-
-#form-builder fieldset.form-builder-group {
-  margin: 0;
-  border: none;
-  border-top: 1px solid #CCC;
 }
 
 /* Weight and parents form */
@@ -244,12 +291,12 @@ div.form-builder-new-field span.progress {
   padding: 0;
 }
 
-#form-builder-field-palette ul li,
-#form-builder-wrapper > li {
+#form-builder-field-palette ul li {
   list-style-type: none;
   background: white none no-repeat 6px center;
   padding: 2px 2px 2px 28px;
   border: 1px solid #999;
+  margin: 2px;
   float: left;
   width: 80px;
   font-size: 11px;
@@ -260,85 +307,57 @@ div.form-builder-new-field span.progress {
 #form-builder-field-palette ul li a,
 #form-builder-field-palette ul li a:hover,
 #form-builder-field-palette ul li a:active,
-#form-builder-field-palette ul li a:visited,
-#form-builder-wrapper > li a {
+#form-builder-field-palette ul li a:visited {
   text-decoration: none;
   cursor: move;
   color: black;
 }
 
-#form-builder-field-palette ul li.field-body_field,
-#form-builder-wrapper > li.field-body_field {
-  background-image: url(images/fields/body.png);
-}
-#form-builder-field-palette ul li.field-checkboxes,
-#form-builder-wrapper > li.field-checkboxes {
+#form-builder-field-palette ul li.field-checkboxes {
   background-image: url(images/fields/checkboxes.png);
 }
-#form-builder-field-palette ul li.field-email,
-#form-builder-wrapper > li.field-email {
+#form-builder-field-palette ul li.field-date {
+  background-image: url(images/fields/date.png);
+}
+#form-builder-field-palette ul li.field-email {
   background-image: url(images/fields/email.png);
 }
-#form-builder-field-palette ul li.field-fieldset,
-#form-builder-wrapper > li.field-fieldset {
+#form-builder-field-palette ul li.field-fieldset {
   background-image: url(images/fields/fieldset.png);
 }
-#form-builder-field-palette ul li.field-file,
-#form-builder-field-palette ul li.field-upload_settings,
-#form-builder-wrapper > li.field-file,
-#form-builder-wrapper > li.field-upload_settings {
+#form-builder-field-palette ul li.field-file {
   background-image: url(images/fields/file.png);
 }
-#form-builder-field-palette ul li.field-hidden,
-#form-builder-wrapper > li.field-hidden {
+#form-builder-field-palette ul li.field-grid {
+  background-image: url(images/fields/grid.png);
+}
+#form-builder-field-palette ul li.field-hidden {
   background-image: url(images/fields/hidden.png);
 }
-#form-builder-field-palette ul li.field-image,
-#form-builder-wrapper > li.field-image {
+#form-builder-field-palette ul li.field-image {
   background-image: url(images/fields/image.png);
 }
-#form-builder-field-palette ul li.field-markup,
-#form-builder-wrapper > li.field-markup {
+#form-builder-field-palette ul li.field-markup {
   background-image: url(images/fields/markup.png);
 }
-#form-builder-field-palette ul li.field-menu_settings,
-#form-builder-wrapper > li.field-menu_settings {
-  background-image: url(images/fields/menu.png);
-}
-#form-builder-field-palette ul li.field-number,
-#form-builder-wrapper > li.field-number {
+#form-builder-field-palette ul li.field-number {
   background-image: url(images/fields/number.png);
 }
-#form-builder-field-palette ul li.field-path_settings,
-#form-builder-wrapper > li.field-path_settings {
-  background-image: url(images/fields/path.png);
+#form-builder-field-palette ul li.field-pagebreak {
+  background-image: url(images/fields/pagebreak.png);
 }
-#form-builder-field-palette ul li.field-radios,
-#form-builder-wrapper > li.field-radios {
+#form-builder-field-palette ul li.field-radios {
   background-image: url(images/fields/radios.png);
 }
-#form-builder-field-palette ul li.field-revision_information,
-#form-builder-wrapper > li.field-revision_information {
-  background-image: url(images/fields/revisions.png);
-}
-#form-builder-field-palette ul li.field-select,
-#form-builder-wrapper > li.field-select {
+#form-builder-field-palette ul li.field-select {
   background-image: url(images/fields/select.png);
 }
-#form-builder-field-palette ul li.field-taxonomy,
-#form-builder-wrapper > li.field-taxonomy {
-  background-image: url(images/fields/taxonomy.png);
+#form-builder-field-palette ul li.field-time {
+  background-image: url(images/fields/time.png);
 }
-#form-builder-field-palette ul li.field-textarea,
-#form-builder-wrapper > li.field-textarea {
+#form-builder-field-palette ul li.field-textarea {
   background-image: url(images/fields/textarea.png);
 }
-#form-builder-field-palette ul li.field-textfield,
-#form-builder-wrapper > li.field-textfield {
+#form-builder-field-palette ul li.field-textfield {
   background-image: url(images/fields/textfield.png);
 }
-#form-builder-field-palette ul li.field-title,
-#form-builder-wrapper > li.field-title {
-  background-image: url(images/fields/title.png);
-}
-

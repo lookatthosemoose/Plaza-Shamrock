@@ -1,12 +1,11 @@
 <?php
-
-require_once 'HTMLPurifier/DefinitionCache.php';
-
 /**
+ * @file
  * Cache handler that stores all data in drupals builtin cache
  */
-class HTMLPurifier_DefinitionCache_Drupal extends HTMLPurifier_DefinitionCache
-{
+require_once 'HTMLPurifier/DefinitionCache.php';
+
+class HTMLPurifier_DefinitionCache_Drupal extends HTMLPurifier_DefinitionCache {
   /**
    * Add an object to the cache without overwriting
    */
@@ -16,21 +15,21 @@ class HTMLPurifier_DefinitionCache_Drupal extends HTMLPurifier_DefinitionCache
 
     if ($this->fetchFromDrupalCache($key)) {
       // already cached
-      return false;
+      return FALSE;
     }
     $this->storeInDrupalCache($def, $key);
-    return true;
+    return TRUE;
   }
 
   /**
-   * Unconditionally add an object to the cache, overwrites any existing object. 
+   * Unconditionally add an object to the cache, overwrites any existing object.
    */
   function set($def, $config) {
     if (!$this->checkDefType($def)) return;
     $key = $this->generateKey($config);
 
     $this->storeInDrupalCache($def, $key);
-    return true;
+    return TRUE;
   }
 
   /**
@@ -42,15 +41,15 @@ class HTMLPurifier_DefinitionCache_Drupal extends HTMLPurifier_DefinitionCache
 
     if (!$this->fetchFromDrupalCache($key)) {
       // object does not exist in cache
-      return false;
+      return FALSE;
     }
 
     $this->storeInDrupalCache($def, $key);
-    return true;
+    return TRUE;
   }
 
   /**
-   * Retrieve an object from the cache 
+   * Retrieve an object from the cache
    */
   function get($config) {
     $key = $this->generateKey($config);
@@ -58,17 +57,17 @@ class HTMLPurifier_DefinitionCache_Drupal extends HTMLPurifier_DefinitionCache
   }
 
   /**
-   * Delete an object from the cache 
+   * Delete an object from the cache
    */
   function remove($config) {
     $key = $this->generateKey($config);
     cache_clear_all("htmlpurifier:$key", 'cache');
-    return true;
+    return TRUE;
   }
 
   function flush($config) {
-    cache_clear_all("htmlpurifier:*", 'cache', true);
-    return true;
+    cache_clear_all("htmlpurifier:*", 'cache', TRUE);
+    return TRUE;
   }
 
   function cleanup($config) {
@@ -86,12 +85,12 @@ class HTMLPurifier_DefinitionCache_Drupal extends HTMLPurifier_DefinitionCache
   function fetchFromDrupalCache($key) {
     $cached = cache_get("htmlpurifier:$key");
     if ($cached) return unserialize($cached->data);
-    return false;
+    return FALSE;
   }
 
   function storeInDrupalCache($def, $key) {
     cache_set("htmlpurifier:$key", serialize($def), 'cache', CACHE_PERMANENT);
   }
-  
+
 }
 

@@ -8,14 +8,17 @@ and it's nice to have dom and iconv.
 * Download HTML Purifier from http://htmlpurifier.org/ You will need
   4.0.0 or later.
 
-* There are two possible ways to install the HTML Purifier library. 
+* There are two locations you can install the HTML Purifier library.
 
   1. Module directory installation. This means installing the library
-     folder under the module directory. This way has the advantage of
-     not depending on other modules. The issue is that when you
-     upgrade the htmlpurifier module the HTML Purifier library gets
-     removed and you have to re-extract the archive in the newly
-     installed module directory.
+     folder under the module directory, so that the file
+     sites/<site>/modules/htmlpurifier/library/HTMLPurifier.auto.php
+     exists.  The easiest way to do this is to extract the entire
+     htmlpurifier-x.y.z folder, and then copy the
+     htmlpurifier-x.y.z/library folder to your module.  This method is
+     convenient and simple, but does not permit HTML Purifier to be shared
+     with other modules and can make upgrading the Drupal module a little
+     complicated.
 
   2. The preferred way is making use of the libraries API,
      http://drupal.org/project/libraries. This makes the library
@@ -24,14 +27,17 @@ and it's nice to have dom and iconv.
      and enable it before enabling the htmlpurifier module so that in
      the install phase it can find the library.
 
-     Extract the library folder to sites/all/libraries or to
-     sites/<site>/libraries for a specific site in a multisite Drupal
-     setup.
+     Extract the htmlpurifier-x.y.z archive to
+     sites/all/libraries/htmlpurifier or to
+     sites/<site>/libraries/htmlpurifier for a specific site in a
+     multisite Drupal setup.  You can get away with just placing
+     the library folder, so that sites/<site>/libraries/htmlpurifier/library
+     exists (see below).
 
      The final setup should be, when making the library and module
      available to all sites:
 
-     sites/all/libraries/htmlpurifier/
+     sites/all/libraries/htmlpurifier/library
          HTMLPurifier
          HTMLPurifier.autoload.php
          HTMLPurifier.auto.php
@@ -44,7 +50,7 @@ and it's nice to have dom and iconv.
 
      Now you can safely upgrade your htmlpurifier module without
      having to re-deploy the HTML Purifier library.
-         
+
 * Go to Administer > Modules and enable this module
 
 * You can now create a new text format or add the HTML Purifier to an 

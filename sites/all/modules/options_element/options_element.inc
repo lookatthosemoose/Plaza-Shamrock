@@ -1,5 +1,4 @@
 <?php
-// $Id: options_element.inc,v 1.12 2011/01/12 07:25:13 quicksketch Exp $
 
 /**
  * @file
@@ -8,10 +7,11 @@
 
 
 /**
- * Pre render an options element
+ * Theme an options element.
  */
-function pre_render_options($element, $form_state) {
-  // Add classes to the class array.
+function theme_options($variables) {
+  $element = $variables['element'];
+
   $classes = array();
   if (isset($element['#attributes']['class'])) {
     $classes = $element['#attributes']['class'];
@@ -31,65 +31,44 @@ function pre_render_options($element, $form_state) {
   if (isset($element['#multiple']) && $element['#multiple']) {
     $classes[] = 'options-multiple';
   }
-  $element['#attributes']['class'] = $classes;
 
-
-  $element['options'] = array(
-    '#type' => 'fieldset',
-    '#title' => t('Options'),
-    '#collapsible' => FALSE,
-    '#attributes' => array('class' => array('options')),
-  );
-
-  $element['options']['custom_keys'] = $element['options_field'];
-  unset($element['options_field']);
-
+  $options = '';
+  $options .= drupal_render($element['options_field']);
   if (isset($element['default_value_field'])) {
-    $element['options']['default_value_field'] = $element['default_value_field'];
-    unset($element['default_value_field']);
+    $options .= drupal_render($element['default_value_field']);
+  }
+  if (isset($element['default_value_pattern'])) {
+    $options .= drupal_render($element['default_value_pattern']);
   }
 
-  $element['settings'] = array(
-    '#type' => 'fieldset',
-    '#title' => t('Option settings'),
-    '#attributes' => array('class' => array('option-settings')),
-  );
-
-  $settings = array();
+  $settings = '';
   if (isset($element['custom_keys'])) {
-    $settings['custom_keys'] = $element['custom_keys'];
-    unset($element['custom_keys']);
+    $settings .= drupal_render($element['custom_keys']);
   }
   if (isset($element['multiple'])) {
-    $settings['multiple'] = $element['multiple'];
-    unset($element['multiple']);
+    $settings .= drupal_render($element['multiple']);
   }
   if (isset($element['option_settings'])) {
-    $settings['option_settings'] = $element['option_settings'];
-    unset($element['option_settings']);
+    $settings .= drupal_render($element['option_settings']);
   }
-
-  if (count($settings) > 0) {
-    $element['settings'] = array(
-      '#type' => 'fieldset',
-      '#title' => t('Option settings'),
-      '#attributes' => array('class' => array('option-settings')),
-    );
-    $element['settings'] = array_merge($element['settings'], $settings);
-  }
-
-  return $element;
-}
-
-/**
- * Theme an options element.
- */
-function theme_options($variables) {
-  $element = $variables['element'];
 
   $output = '';
-  $output .= '<div class="' . implode(' ', $element['#attributes']['class']) .'">';
-  $output .= drupal_render_children($element);
+  $output .= '<div class="' . implode(' ', $classes) .'">';
+  $output .= theme('fieldset', array('element' => array(
+    '#title' => t('Options'),
+    '#collapsible' => FALSE,
+    '#children' => $options,
+    '#attributes' => array('class' => array('options')),
+  )));
+
+  if (!empty($settings)) {
+    $output .= theme('fieldset', array('element' => array(
+      '#title' => t('Option settings'),
+      '#collapsible' => FALSE,
+      '#children' => $settings,
+      '#attributes' => array('class' => array('option-settings')),
+    )));
+  }
   $output .= '</div>';
 
   return $output;
@@ -154,13 +133,13 @@ function _form_options_expand($element) {
       '#rows' => 5,
       '#required' => isset($element['#required']) ? $element['#required'] : FALSE,
       '#description' => t('List options one option per line.'),
-      '#attributes' => $element['#disabled'] ? array('readonly' => 'readonly') : array(),
+      '#attributes' => $element['#options_readonly'] ? array('readonly' => 'readonly') : array(),
       '#wysiwyg' => FALSE, // Prevent CKeditor from trying to hijack.
     );
 
     // If validation fails, reload the user's text even if it's not valid.
-    if (isset($element['#value']['text'])) {
-      $element['options_field']['#value'] = $element['#value']['text'];
+    if (isset($element['#value']['options_text'])) {
+      $element['options_field']['#value'] = $element['#value']['options_text'];
     }
     // Most of the time, we'll be converting the options array into the text.
     else {
@@ -180,17 +159,27 @@ function _form_options_expand($element) {
   }
 
   // Add the field for storing default values.
-  if ($element['#manual_default_value_allowed'] && !isset($element['default_value_field'])) {
+  if ($element['#default_value_allowed'] && !isset($element['default_value_field'])) {
     $element['default_value_field'] = array(
       '#title' => t('Default value'),
       '#type' => 'textfield',
       '#size' => 60,
+      '#maxlength' => 1024,
       '#value' => isset($element['#default_value']) ? ($element['#multiple'] ? implode(', ', (array) $element['#default_value']) : $element['#default_value']) : '',
       '#description' => t('Specify the keys that should be selected by default.'),
     );
     if ($element['#multiple']) {
       $element['default_value_field']['#description'] .= ' ' . t('Multiple default values may be specified by separating keys with commas.');
     }
+  }
+
+  // Add the field for storing a default value pattern.
+  if ($element['#default_value_pattern']) {
+    $element['default_value_pattern'] = array(
+      '#type' => 'hidden',
+      '#value' => $element['#default_value_pattern'],
+      '#attributes' => array('class' => array('default-value-pattern')),
+    );
   }
 
   // Remove properties that will confuse the FAPI.
@@ -206,7 +195,8 @@ function _form_options_expand($element) {
  * @see form_options_validate()
  */
 function _form_options_validate($element, &$form_state) {
-  // Convert text to an array of options.
+  // Even though we already have the converted options in #value['options'], run
+  // the conversion again to check for duplicates in the user-defined list.
   $duplicates = array();
   $options = form_options_from_text($element['#value']['options_text'], $element['#key_type'], empty($element['#optgroups']), $duplicates);
 
@@ -287,22 +277,31 @@ function _form_type_options_value(&$element, $edit = FALSE) {
         $default_items = explode(',', $edit['default_value_field']);
         foreach ($default_items as $key) {
           $key = trim($key);
-          if ($value = _form_options_search($key, $options)) {
+          $value = _form_options_search($key, $options, $element['#default_value_pattern']);
+          if (!is_null($value)) {
             $default_value[] = $value;
           }
         }
       }
       else {
-        $default_value = _form_options_search(trim($edit['default_value_field']), $options);
+        $default_value = _form_options_search(trim($edit['default_value_field']), $options, $element['#default_value_pattern']);
       }
     }
+    else {
+      $default_value = NULL;
+    }
 
-    return array(
+    $return = array(
       'options' => $options,
       'default_value' => $default_value,
       'options_text' => $edit['options_field'],
-      'default_value_text' => $edit['default_value_field'],
     );
+
+    if (isset($edit['default_value_field'])) {
+      $return['default_value_text'] = $edit['default_value_field'];
+    }
+
+    return $return;
   }
 }
 
@@ -397,7 +396,13 @@ function _form_options_from_text($text, $key_type, $flat = FALSE, &$duplicates =
 
   // Expand the list into a nested array, assign keys and check duplicates.
   $options = array();
-  $new_key = 0;
+  $new_key = 1;
+  foreach ($items as $item) {
+    $int_key = $item['key'] * 1;
+    if (is_int($int_key)) {
+      $new_key = max($int_key, $new_key);
+    }
+  }
   foreach ($items as $item) {
     // Assign a key if needed.
     if ($key_type == 'none') {
@@ -431,15 +436,18 @@ function _form_options_from_text($text, $key_type, $flat = FALSE, &$duplicates =
 /**
  * Recursive function for finding default value keys. Matches on keys or values.
  */
-function _form_options_search($needle, $haystack) {
+function _form_options_search($needle, $haystack, $include_pattern) {
   if (isset($haystack[$needle])) {
     return $needle;
   }
+  elseif ($include_pattern && preg_match('/' . $include_pattern . '/', $needle)) {
+    return $needle;
+  }
   foreach ($haystack as $key => $value) {
-    if (is_array($value) && ($return = _form_options_search($needle, $value))) {
-      return $return;
+    if (is_array($value)) {
+      return _form_options_search($needle, $value, $include_pattern);
     }
-    if ($value == $needle) {
+    elseif ($value == $needle) {
       return $key;
     }
   }

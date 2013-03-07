@@ -292,7 +292,7 @@ function image_style_name_validate($element, $form_state) {
  * @ingroup forms
  * @see image_style_delete_form_submit()
  */
-function image_style_delete_form($form, $form_state, $style) {
+function image_style_delete_form($form, &$form_state, $style) {
   $form_state['image_style'] = $style;
 
   $replacement_styles = array_diff_key(image_style_options(), array($style['name'] => ''));
@@ -342,7 +342,7 @@ function image_style_revert_form($form, $form_state, $style) {
  * Submit handler to convert an overridden style to its default.
  */
 function image_style_revert_form_submit($form, &$form_state) {
-  drupal_set_message(t('The %style style has been revert to its defaults.', array('%style' => $form_state['image_style']['name'])));
+  drupal_set_message(t('The %style style has been reverted to its defaults.', array('%style' => $form_state['image_style']['name'])));
   image_default_style_revert($form_state['image_style']);
   $form_state['redirect'] = 'admin/config/media/image-styles';
 }
@@ -497,7 +497,7 @@ function image_effect_scale_validate($element, &$form_state) {
 /**
  * Form structure for the image resize form.
  *
- * Note that this is not a complete form; it only contains the portion of the
+ * Note that this is not a complete form, it only contains the portion of the
  * form for configuring the resize options. Therefore it does not not need to
  * include metadata about the effect, nor a submit button.
  *
@@ -531,8 +531,8 @@ function image_resize_form($data) {
 /**
  * Form structure for the image scale form.
  *
- * Note that this is not a complete form; it only contains the portion of the
- * form for configuring the scale options. Therefore it does not need to
+ * Note that this is not a complete form, it only contains the portion of the
+ * form for configuring the scale options. Therefore it does not not need to
  * include metadata about the effect, nor a submit button.
  *
  * @param $data
@@ -547,27 +547,6 @@ function image_scale_form($data) {
     '#type' => 'checkbox',
     '#default_value' => (isset($data['upscale'])) ? $data['upscale'] : 0,
     '#title' => t('Allow Upscaling'),
-    '#description' => t('Let scale make images larger than their original size'),
-  );
-  return $form;
-}
-
-/**
- * Form structure for the image scale and crop form.
- *
- * Note that this is not a complete form, it only contains the portion of the
- * form for configuring the scale and crop options. Therefore it does not
- * need to include metadata about the effect, nor a submit button.
- *
- * @param $data
- *   The current configuration for this scale and crop effect.
- */
-function image_scale_and_crop_form($data) {
-  $form = image_resize_form($data);
-  $form['upscale'] = array(
-    '#type' => 'checkbox',
-    '#default_value' => (isset($data['upscale'])) ? $data['upscale'] : TRUE,
-    '#title' => t('Allow upscaling'),
     '#description' => t('Let scale make images larger than their original size'),
   );
   return $form;
@@ -897,23 +876,6 @@ function theme_image_resize_summary($variables) {
  */
 function theme_image_scale_summary($variables) {
   $data = $variables['data'];
-  return theme('image_resize_summary', array('data' => $data)) . ' ' . ($data['upscale'] ? '(' . t('upscaling allowed') . ')' : '');
-}
-
-/**
- * Returns HTML for a summary of an image scale and crop effect.
- *
- * @param $variables
- *   An associative array containing:
- *   - data: The current configuration for this scale and crop effect.
- *
- * @ingroup themeable
- */
-function theme_image_scale_and_crop_summary($variables) {
-  $data = $variables['data'];
-  if (!isset($data['upscale'])) {
-    $data['upscale'] = TRUE;
-  }
   return theme('image_resize_summary', array('data' => $data)) . ' ' . ($data['upscale'] ? '(' . t('upscaling allowed') . ')' : '');
 }
 

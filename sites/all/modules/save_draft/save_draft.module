@@ -6,6 +6,16 @@
  */
 
 /**
+ * Save draft functionality is disabled.
+ */
+define('SAVE_DRAFT_DISABLED', 0);
+
+/**
+ * Save draft functionality is enabled.
+ */
+define('SAVE_DRAFT_ENABLED', 1);
+
+/**
  * Implements hook_permission().
  */
 function save_draft_permission() {
@@ -27,7 +37,7 @@ function save_draft_permission() {
  * unpublished.
  */
 function save_draft_form_node_form_alter(&$form, &$form_state) {
-  if (save_draft_access($form, $form_state)) {
+  if (variable_get('save_draft_enabled_' . $form['#node']->type, SAVE_DRAFT_ENABLED) && save_draft_access($form, $form_state)) {
     // Remove the status checkbox from the options fieldset, and adjust the
     // fieldset accordingly.
     if (isset($form['options']['status'])) {
@@ -95,6 +105,34 @@ function save_draft_validate($form, &$form_state) {
 }
 
 /**
+ * Implements hook_form_FORM_ID_alter() for the node type form.
+ */
+function save_draft_form_node_type_form_alter(&$form, &$form_state) {
+  $enabled = variable_get('save_draft_enabled_' . $form['#node_type']->type, SAVE_DRAFT_ENABLED);
+
+  $form['save_draft'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Enable "Save draft" button'),
+    '#weight' => 1,
+    '#collapsible' => TRUE,
+    '#collapsed' => !$enabled,
+    '#group' => 'additional_settings',
+    '#attached' => array(
+      'js' => array(
+        'save-draft' => drupal_get_path('module', 'save_draft') . '/save_draft.js',
+      ),
+    ),
+  );
+
+  $form['save_draft']['save_draft_enabled'] = array(
+    '#title' => t('Enabled'),
+    '#type' => 'checkbox',
+    '#description' => t('Enable save as draft functionality for this content type.'),
+    '#default_value' => $enabled,
+  );
+}
+
+/**
  * Returns TRUE if the currently logged in user has permission to choose the published state for the node being edited.
  */
 function save_draft_access($form, &$form_state) {
@@ -131,4 +169,11 @@ function save_draft_access($form, &$form_state) {
   }
 
   return $access;
+}
+
+/**
+ * Implements hook_node_type_delete().
+ */
+function save_draft_node_type_delete($info) {
+  variable_del('save_draft_enabled_' . $info->type);
 }

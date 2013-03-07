@@ -23,19 +23,6 @@ function xmlsitemap_engines_settings_form() {
     '#default_value' => variable_get('xmlsitemap_engines_engines', array()),
     '#options' => $engine_options,
   );
-  $form['xmlsitemap_engines_custom_urls'] = array(
-    '#type' => 'textarea',
-    '#title' => t('Custom submission URLs'),
-    '#description' => t('Enter one URL per line. The token [sitemap] will be replaced with the URL to your sitemap. For example: %example-before would become %example-after.', array('%example-before' => 'http://example.com/ping?[sitemap]', '%example-after' => xmlsitemap_engines_prepare_url('http://example.com/ping?[sitemap]', url('sitemap.xml', array('absolute' => TRUE))))),
-    '#default_value' => variable_get('xmlsitemap_engines_custom_urls', ''),
-    '#rows' => 2,
-    '#wysiwyg' => FALSE,
-    '#element_validate' => array('xmlsitemap_engines_validate_custom_urls'),
-    '#attached' => array(
-      'js' => array(drupal_get_path('module', 'xmlsitemap_engines') . '/xmlsitemap_engines.admin.js'),
-      'css' => array(drupal_get_path('module', 'xmlsitemap_engines') . '/xmlsitemap_engines.admin.css'),
-    ),
-  );
   $form['xmlsitemap_engines_minimum_lifetime'] = array(
     '#type' => 'select',
     '#title' => t('Do not submit more often than every'),
@@ -46,6 +33,15 @@ function xmlsitemap_engines_settings_form() {
     '#type' => 'checkbox',
     '#title' => t('Only submit if the sitemap has been updated since the last submission.'),
     '#default_value' => variable_get('xmlsitemap_engines_submit_updated', TRUE),
+  );
+  $form['xmlsitemap_engines_custom_urls'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Custom submission URLs'),
+    '#description' => t('Enter one URL per line. The token [sitemap] will be replaced with the URL to your sitemap. For example: %example-before would become %example-after.', array('%example-before' => 'http://example.com/ping?[sitemap]', '%example-after' => xmlsitemap_engines_prepare_url('http://example.com/ping?[sitemap]', url('sitemap.xml', array('absolute' => TRUE))))),
+    '#default_value' => variable_get('xmlsitemap_engines_custom_urls', ''),
+    '#rows' => 2,
+    '#wysiwyg' => FALSE,
+    '#element_validate' => array('xmlsitemap_engines_validate_custom_urls'),
   );
 
   // Ensure the xmlsitemap_engines variable gets filterd to a simple array.

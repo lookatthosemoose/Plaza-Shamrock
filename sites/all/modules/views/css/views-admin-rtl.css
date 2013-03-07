@@ -5,10 +5,6 @@
 
 /* @group Inline lists */
 
-.horizontal-container {
-  float: right;
-}
-
 .horizontal > * {
   float: right;
 }

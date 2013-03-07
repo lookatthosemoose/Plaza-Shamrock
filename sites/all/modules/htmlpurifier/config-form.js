@@ -1,4 +1,3 @@
-// $Id: config-form.js,v 1.1.2.1 2010/10/27 17:13:44 ezyang Exp $
 (function ($) {
 
 Drupal.behaviors.htmlpurifierConfigForm = {

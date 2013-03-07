@@ -8,14 +8,8 @@
 /**
  * Displays the file type admin overview page.
  */
-function file_entity_list_types_page($type = NULL) {
-  if (isset($type)) {
-    $info = file_info_file_types($type);
-    $types = $info ? array($type => $info) : array();
-  }
-  else {
-    $types = file_info_file_types();
-  }
+function file_entity_list_types_page() {
+  $types = file_info_file_types();
   $entity_info = entity_get_info('file');
   $field_ui = module_exists('field_ui');
   $header = array(

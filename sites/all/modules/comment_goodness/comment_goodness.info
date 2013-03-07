@@ -1,10 +1,12 @@
 name = Comment goodness
 description = Provides comment sorting, comment form placement and comment form configuration settings
-files[] = "comment_goodness.module"
+core = 7.x
+dependencies[] = comment
+files[] = tests/comment_goodness.test
 
-; Information added by drupal.org packaging script on 2011-12-20
-version = "7.x-1.0"
+; Information added by drupal.org packaging script on 2012-10-29
+version = "7.x-1.4"
 core = "7.x"
 project = "comment_goodness"
-datestamp = "1324382690"
+datestamp = "1351554675"
 

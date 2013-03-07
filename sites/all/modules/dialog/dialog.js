@@ -12,7 +12,13 @@ Drupal.behaviors.dialog = {
     $("body").once("dialog", function() {
       Drupal.dialog = $('<div id="dialog"></div>').dialog({
         autoOpen: false,
-        modal: true
+        modal: true,
+        close: function (event, ui) {
+          var element = Drupal.dialog;
+          // Process any other behaviors on the content, and close the dialog box.
+          Drupal.detachBehaviors(element);
+          $(this).hide();
+        }
       });
     });
 
@@ -39,13 +45,7 @@ Drupal.theme.prototype.DialogThrobber = function () {
  * Command to open a loading dialog.
  */
 Drupal.ajax.prototype.commands.dialog_loading = function(ajax, response, status) {
-  // @see http://drupal.org/node/1358624
-  // For some reason, the ajax parameter is undefined. In the subsequent call to
-  // dialog_display, ajax.settings is checked, so pass an empty object to
-  // prevent an error.
-  // @todo Refactor this to use the Drupal AJAX API's standard throbber instead
-  // of injecting a custom one.
-  Drupal.ajax.prototype.commands.dialog_display({}, {
+  Drupal.ajax.prototype.commands.dialog_display(this, {
     content: Drupal.theme('DialogThrobber'),
     title: Drupal.t('Loading...')
   });

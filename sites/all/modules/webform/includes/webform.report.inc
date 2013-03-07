@@ -13,7 +13,7 @@ module_load_include('inc', 'webform', 'includes/webform.submissions');
 /**
  * Retrieve lists of submissions for a given webform.
  */
-function webform_results_submissions($node, $user_filter, $pager_count, $extra_filters = array()) {
+function webform_results_submissions($node, $user_filter, $pager_count) {
   global $user;
 
   if (isset($_GET['results']) && is_numeric($_GET['results'])) {
@@ -21,9 +21,7 @@ function webform_results_submissions($node, $user_filter, $pager_count, $extra_f
   }
 
   $header = theme('webform_results_submissions_header', array('node' => $node));
-  $filters = array('nid' => $node->nid) + $extra_filters;
   if ($user_filter) {
-    $filters['uid'] = $user->uid;
     if ($user->uid) {
       drupal_set_title(t('Submissions for %user', array('%user' => $user->name)), PASS_THROUGH);
     }
@@ -32,9 +30,13 @@ function webform_results_submissions($node, $user_filter, $pager_count, $extra_f
       webform_disable_page_cache();
     }
     webform_set_breadcrumb($node);
+    $submissions = webform_get_submissions(array('nid' => $node->nid, 'uid' => $user->uid), $header, $pager_count);
+    $count = webform_get_submission_count($node->nid, $user->uid);
   }
-  $submissions = webform_get_submissions($filters, $header, $pager_count);
-  $count = webform_get_submission_count($filters);
+  else {
+    $submissions = webform_get_submissions($node->nid, $header, $pager_count);
+    $count = webform_get_submission_count($node->nid);
+  }
 
   $operation_column = end($header);
   $operation_total = $operation_column['colspan'];
@@ -43,7 +45,7 @@ function webform_results_submissions($node, $user_filter, $pager_count, $extra_f
   foreach ($submissions as $sid => $submission) {
     $row = array(
       $submission->is_draft ? t('@sid (draft)', array('@sid' => $sid)) : $sid,
-      format_date($submission->submitted, 'small'),
+      format_date($submission->submitted, 'short'),
     );
     if (webform_results_access($node, $user)) {
       $row[] = theme('username', array('account' => $submission));
@@ -169,16 +171,15 @@ function template_preprocess_webform_results_submissions(&$vars) {
 /**
  * Create a table containing all submitted values for a webform node.
  */
-function webform_results_table($node, $pager_count = 0, $extra_filters = array()) {
+function webform_results_table($node, $pager_count = 0) {
   if (isset($_GET['results']) && is_numeric($_GET['results'])) {
     $pager_count = $_GET['results'];
   }
 
   // Get all the submissions for the node.
   $header = theme('webform_results_table_header', array('node' => $node));
-  $filters = array('nid' => $node->nid) + $extra_filters;
-  $submissions = webform_get_submissions($filters, $header, $pager_count);
-  $total_count = webform_get_submission_count($filters);
+  $submissions = webform_get_submissions($node->nid, $header, $pager_count);
+  $total_count = webform_get_submission_count($node->nid);
 
   $output = theme('webform_results_table', array('node' => $node, 'components' => $node->webform['components'], 'submissions' => $submissions, 'total_count' => $total_count, 'pager_count' => $pager_count));
   if ($pager_count) {
@@ -230,7 +231,7 @@ function theme_webform_results_table($variables) {
   // Generate a row for each submission.
   foreach ($submissions as $sid => $submission) {
     $cell[] = l($sid, 'node/' . $node->nid . '/submission/' . $sid);
-    $cell[] = format_date($submission->submitted, 'small');
+    $cell[] = format_date($submission->submitted, 'short');
     $cell[] = theme('username', array('account' => $submission));
     $cell[] = $submission->remote_addr;
     $component_headers = array();
@@ -434,6 +435,13 @@ function webform_results_download_form($form, &$form_state, $node) {
     '#description' => '',
   );
 
+  // By default results are downloaded. User can override this value if
+  // programmatically submitting this form.
+  $form['download'] = array(
+    '#type' => 'value',
+    '#default_value' => TRUE
+  );
+
   $form['submit'] = array(
     '#type' => 'submit',
     '#value' => t('Download'),
@@ -510,6 +518,7 @@ function webform_results_download_form_submit(&$form, &$form_state) {
     'select_keys' => $form_state['values']['select_keys'],
     'select_format' => $form_state['values']['select_format'],
     'range_type' => $form_state['values']['range']['range_type'],
+    'download' => $form_state['values']['download'],
   );
 
   // Retrieve the list of required SIDs.
@@ -517,10 +526,16 @@ function webform_results_download_form_submit(&$form, &$form_state) {
     $options['sids'] = webform_download_sids($form_state['values']['node']->nid, $form_state['values']['range']);
   }
 
-  // Allow extra filtering if previous form handlers requested it.
-  $extra_filters = isset($form_state['webform']['extra_filters']) ? $form_state['webform']['extra_filters'] : array();
+  $export_info = webform_results_export($form_state['values']['node'], $form_state['values']['format'], $options);
 
-  webform_results_download($form_state['values']['node'], $form_state['values']['format'], $options, $extra_filters);
+  // If webform result file should be downloaded, send the file to the browser,
+  // otherwise save information about the created file in $form_state.
+  if ($options['download']) {
+    webform_results_download($form_state['values']['node'], $export_info);
+  }
+  else {
+    $form_state['export_info'] = $export_info;
+  }
 }
 
 /**
@@ -657,7 +672,7 @@ function theme_webform_results_download_select_format($variables) {
  *   27 Feb 2005       ,1035,56 ,212   ,X         ,        ,        ,..,       ,X          ,X       ,X       ,..,X       ,How is this?
  *
  */
-function webform_results_download($node, $format = 'delimited', $options = array(), $extra_filters = array()) {
+function webform_results_export($node, $format = 'delimited', $options = array()) {
   global $user;
   module_load_include('inc', 'webform', 'includes/webform.export');
   module_load_include('inc', 'webform', 'includes/webform.components');
@@ -731,7 +746,6 @@ function webform_results_download($node, $format = 'delimited', $options = array
   if (!empty($options['sids'])){
     $filters['sid'] = $options['sids'];
   }
-  $filters += $extra_filters;
   $submissions = webform_get_submissions($filters);
 
   // Generate a row for each submission.
@@ -747,7 +761,7 @@ function webform_results_download($node, $format = 'delimited', $options = array
       $row[] = $sid;
     }
     if (isset($submission_information['time'])) {
-      $row[] = format_date($submission->submitted, 'small');
+      $row[] = format_date($submission->submitted, 'short');
     }
     if (isset($submission_information['draft'])) {
       $row[] = $submission->is_draft;
@@ -789,13 +803,34 @@ function webform_results_download($node, $format = 'delimited', $options = array
   // Close the file.
   @fclose($handle);
 
+  $export_info['options'] = $options;
+  $export_info['file_name'] = $file_name;
+  $export_info['exporter'] = $exporter;
+  $export_info['row_count'] = $row_count;
+  $export_info['last_sid'] = $sid;
+
+  return $export_info;
+}
+
+/**
+ * Send a generated webform results file to the user's browser.
+ *
+ * @param $node
+ *   The webform node.
+ * @param $export_info
+ *   Export information array retrieved from webform_results_export().
+ */
+function webform_results_download($node, $export_info) {
+  global $user;
+
+  // $exporter, $file_name, $row_count
   $export_name = _webform_safe_name($node->title);
-  $exporter->set_headers($export_name);
-  @readfile($file_name);  // The @ makes it silent.
-  @unlink($file_name);  // Clean up, the @ makes it silent.
+  $export_info['exporter']->set_headers($export_name);
+  @readfile($export_info['file_name']);  // The @ makes it silent.
+  @unlink($export_info['file_name']);  // Clean up, the @ makes it silent.
 
   // Update user last downloaded sid if required.
-  if ($options['range_type'] != 'range' && $row_count > 0) {
+  if ($export_info['options']['range_type'] != 'range' && $export_info['row_count'] > 0) {
     // Delete existing record.
     db_delete('webform_last_download')
       ->condition('nid', $node->nid)
@@ -806,7 +841,7 @@ function webform_results_download($node, $format = 'delimited', $options = array
       ->fields(array(
         'nid' => $node->nid,
         'uid' => $user->uid,
-        'sid' => $sid,
+        'sid' => $export_info['last_sid'],
         'requested' => REQUEST_TIME,
       ))
       ->execute();

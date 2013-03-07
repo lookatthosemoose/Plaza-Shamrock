@@ -17,7 +17,9 @@ function form_builder_get_properties($form_type, $reset = FALSE) {
 
   if (!isset($properties[$form_type])) {
     // Get the list of all properties for all elements.
-    $properties = module_invoke_all('form_builder_properties', $form_type);
+    foreach (module_implements('form_builder_properties') as $module) {
+      $properties = array_merge($properties, module_invoke($module, 'form_builder_properties', $form_type));
+    }
     drupal_alter('form_builder_properties', $properties, $form_type);
   }
 
@@ -60,11 +62,13 @@ function form_builder_get_form_type($form_type = NULL, $reset = FALSE) {
             $field['default']['#form_builder']['element_type'] = $field_key;
           }
           elseif (!isset($field['default']['#form_builder']['element_type'])) {
-            $field['default']['#form_builder']['element_type'] = $field['default']['#type'];
+            $field['default']['#form_builder']['element_type'] = $field_key;
           }
         }
-
       }
+
+      // Sort fields by weight and title.
+      uasort($type, '_form_builder_sort');
     }
 
     drupal_alter('form_builder_types', $types);
@@ -218,9 +222,9 @@ function form_builder_set_element(&$form, $element, &$entire_form = NULL, $paren
       // Handle key changes and replace the existing element in place.
       elseif (isset($element['#key']) && $key != $element['#key']) {
         $new_key = $element['#key'];
-        $index = array_search($key, $form);
-        $before = array_slice($form, 0, $index + 1, TRUE);
-        $after = array_slice($form, $index + 2, NULL, TRUE);
+        $index = array_search($key, array_keys($form));
+        $before = array_slice($form, 0, $index, TRUE);
+        $after = array_slice($form, $index + 1, NULL, TRUE);
         $form = $before + array($new_key => $element) + $after;
         unset($form[$key]);
         $return = TRUE;
@@ -275,6 +279,22 @@ function form_builder_get_element_ids($form) {
 }
 
 /**
+ * Recursive function to get the types of all element within a form.
+ */
+function form_builder_get_element_types($form) {
+  $element_types = array();
+  foreach (element_children($form) as $key) {
+    if (isset($form[$key]['#form_builder']['element_type'])) {
+      $element_types[] = $form[$key]['#form_builder']['element_type'];
+    }
+    $additional_types = form_builder_get_element_types($form[$key]);
+    $element_types = array_merge($element_types, $additional_types);
+  }
+
+  return $element_types;
+}
+
+/**
  * Loader function to retrieve a form builder configuration array.
  *
  * @param $form_type
@@ -297,7 +317,6 @@ function form_builder_save_form(&$form, $form_type, $form_id) {
   module_invoke_all('form_builder_save', $form, $form_type, $form_id);
   form_builder_cache_delete($form_type, $form_id);
 }
-
 
 /**
  * Helper function to add default #form_builder properties to a form.
@@ -330,7 +349,7 @@ function form_builder_add_default_properties($form, $form_type, $key = NULL, $pa
       else {
         // If the type cannot be found, prevent editing of this field.
         unset($form['#form_builder']);
-        return;
+        return $form;
       }
     }
 
@@ -351,4 +370,22 @@ function form_builder_add_default_properties($form, $form_type, $key = NULL, $pa
   }
 
   return $form;
+}
+
+/**
+ * Helper function to sort elements by 'weight' and 'title'.
+ */
+function _form_builder_sort($a, $b) {
+  $a_weight = (is_array($a) && isset($a['weight'])) ? $a['weight'] : 0;
+  $b_weight = (is_array($b) && isset($b['weight'])) ? $b['weight'] : 0;
+  if ($a_weight == $b_weight) {
+    if (!isset($b['title'])) {
+      return -1;
+    }
+    if (!isset($a['title'])) {
+      return 1;
+    }
+    return strcasecmp($a['title'], $b['title']);
+  }
+  return ($a_weight < $b_weight) ? -1 : 1;
 }

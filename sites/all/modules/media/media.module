@@ -29,6 +29,27 @@ require_once (dirname(__FILE__) . '/includes/media.filter.inc');
 /* ***************************************** */
 
 /**
+ * Implements hook_hook_info().
+ */
+function media_hook_info() {
+  $hooks = array(
+    'media_display_types',
+    'media_display_types_alter',
+    'media_parse',
+    'media_operations',
+    'media_browser_plugin_info',
+    'media_browser_plugin_view',
+    'media_browser_plugins_alter',
+    'media_browser_params_alter',
+    'media_wysiwyg_allowed_view_modes_alter',
+    'media_format_form_prepare_alter',
+    'media_token_to_markup_alter',
+  );
+
+  return array_fill_keys($hooks, array('group' => 'media'));
+}
+
+/**
  * Implements hook_help().
  */
 function media_help($path, $arg) {
@@ -46,8 +67,12 @@ function media_help($path, $arg) {
       $output .= '<dt>' . t('Using media assets in WYSIWYG') . '</dt>';
       $output .= '<dd>' . t('Media module provides rich integration with WYSIWYG editors, using Media Browser plugin you can select media asset from library to add to the rich text editor moreover you can add media asset from the media browser itself using either upload method or add from url method. To configure media with WYSIWYG you need two steps of configuration:');
       $output .= '<ul><li>' . t('Enable WYSIWYG plugin on your desired <a href="@wysiwyg-profile">WYSIWYG profile</a>. Please note that you will need to have <a href="@wysiwyg">WYSIWYG</a> module enabled.', array('@wysiwyg-profile' => url('admin/config/content/wysiwyg'), '@wysiwyg' => 'http://drupal.org/project/wysiwyg')) . '</li>';
-      $output .= '<li>' . t('Add Media Filter to the WYSIWYG enabled <a href="@input-format">Input format</a>', array('@input-format' => url('admin/config/content/formats'))) . '</li></ul></dd>';
+      $output .= '<li>' . t('Enable the <em>Convert Media tags to markup</em> filter on the <a href="@input-format">Input format</a> you are using with the WYSIWYG profile.', array('@input-format' => url('admin/config/content/formats'))) . '</li></ul></dd>';
       return $output;
+    case 'admin/config/media/file-types/manage/%/display/media_preview':
+    case 'admin/config/media/file-types/manage/%/file-display/media_preview':
+      drupal_set_message(t('Changing the Preview view mode could have unintended side effects such as breaking the Media browser or WYSIWYG integration. Only change these display settings if you know what you are doing.'), 'warning');
+      break;
   }
 }
 
@@ -57,6 +82,7 @@ function media_help($path, $arg) {
  * Add view modes to the file entity type, appropriate for displaying media.
  */
 function media_entity_info_alter(&$entity_info) {
+  $entity_info['file']['uri callback'] = 'media_entity_uri';
   $entity_info['file']['view modes']['media_link'] = array('label' => t('Link'), 'custom settings' => TRUE);
   $entity_info['file']['view modes']['media_preview'] = array('label' => t('Preview'), 'custom settings' => TRUE);
   $entity_info['file']['view modes']['media_small'] = array('label' => t('Small'), 'custom settings' => TRUE);
@@ -83,15 +109,6 @@ function media_menu() {
     'description' => 'In case there are files in file_managed w/o a type, this function rebuilds them',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('media_admin_rebuild_types_form'),
-    'access arguments' => array('administer media'),
-    'file' => 'includes/media.admin.inc',
-  );
-  
-  $items['admin/config/media/wysiwyg_types'] = array(
-    'title' => 'WYSIWYG media types',
-    'description' => 'Configure media types available for the WYSIWYG',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('media_admin_wysiwyg_types'),
     'access arguments' => array('administer media'),
     'file' => 'includes/media.admin.inc',
   );
@@ -255,11 +272,20 @@ function media_admin_paths() {
     'media/*/multiedit' => TRUE,
     'media/*/delete' => TRUE,
   );
+
+  // If the media browser theme is set to the admin theme, ensure it gets set
+  // as an admin path as well.
+  $dialog_theme = media_variable_get('dialog_theme');
+  if (empty($dialog_theme) || $dialog_theme == variable_get('admin_theme')) {
+    $paths['media/browser'] = TRUE;
+    $paths['media/browser/*'] = TRUE;
+  }
+
   return $paths;
 }
 
 /**
- * Implement hook_permission().
+ * Implements hook_permission().
  */
 function media_permission() {
   return array(
@@ -431,10 +457,11 @@ function media_page_alter(&$page) {
 
   if (isset($_GET['render']) && $_GET['render'] == 'media-popup') {
     $page['#theme'] = 'media_dialog_page';
-    // temporary fix while awaiting fix for 914786
-    if (module_exists('admin_menu')) {
-      admin_menu_suppress();
-    }
+
+    // Disable administration modules from adding output to the popup.
+    // @see http://drupal.org/node/914786
+    module_invoke_all('suppress');
+
     foreach (element_children($page) as $key) {
       if ($key != 'content') {
         unset($page[$key]);
@@ -444,77 +471,10 @@ function media_page_alter(&$page) {
 }
 
 /**
- * Implements hook_menu_local_tasks_alter().
- */
-function media_menu_local_tasks_alter(&$data, $router_item, $root_path) {
-  // Even if there aren't any action links on admin/content/media (e.g., if
-  // the user doesn't have 'import media' permission), make menu_local_actions()
-  // not strictly empty, so that Drupal.behaviors.mediaAdmin.attach() has a
-  // container into which to add an "Add file" action link.
-  if ($root_path == 'admin/content/media' && empty($data['actions']['output'])) {
-    $data['actions']['output'][] = array();
-  }
-}
-
-/**
  * Implements hook_element_info_alter().
  */
 function media_element_info_alter(&$types) {
   $types['text_format']['#pre_render'][] = 'media_pre_render_text_format';
-}
-
-/**
- * Implements hook_media_display_types().
- *
- * This is used to display media in different ways on the admin section.
- * Perhaps should be merged in with the browser display.
- */
-function media_media_display_types() {
-  $path = drupal_get_path('module', 'media');
-  $display_types = array();
-
-  $display_types['list'] = array(
-    'title' => t('List'),
-    'description' => t('Display as a list.'),
-    'icon' => $path . '/images/display-list.png',
-    'icon_active' => $path . '/images/display-list-active.png',
-    'callback' => 'media_admin_list',
-    'file' => drupal_get_path('module', 'media') . '/includes/media.admin.inc',
-  );
-
-  $display_types['thumbnails'] = array(
-    'title' => t('Thumbnails'),
-    'description' => t('Display as thumbnails.'),
-    'icon' => $path . '/images/display-thumbnails.png',
-    'icon_active' => $path . '/images/display-thumbnails-active.png',
-    'callback' => 'media_admin_thumbnails',
-    'file' => drupal_get_path('module', 'media') . '/includes/media.admin.inc',
-  );
-
-  return $display_types;
-}
-
-/**
- * Implements hook_media_operations().
- */
-function media_media_operations() {
-  $operations = array(
-    'delete' => array(
-      'label' => t('Delete'),
-      'callback' => NULL,
-    ),
-    'edit' => array(
-      'label' => t('Edit'),
-      'callback' => NULL,
-      'redirect' => 'media/%fids/multiedit'
-    ),
-  );
-
-  if (!module_exists('multiform')) {
-    // If the multiform module is not installed, do not show this option.
-    unset($operations['edit']);
-  }
-  return $operations;
 }
 
 /**
@@ -561,6 +521,7 @@ function media_form_field_ui_field_edit_form_alter(&$form, &$form_state) {
     $form['field']['settings']['display_default']['#access'] = FALSE;
     $form['instance']['settings']['description_field']['#access'] = FALSE;
     $form['instance']['settings']['file_extensions']['#title'] = t('Allowed file extensions for uploaded files');
+    $form['instance']['settings']['file_extensions']['#maxlength'] = 255;
   }
 
   // On image fields using the media widget we remove the alt/title fields
@@ -568,12 +529,32 @@ function media_form_field_ui_field_edit_form_alter(&$form, &$form_state) {
     $form['instance']['settings']['alt_field']['#access'] = FALSE;
     $form['instance']['settings']['title_field']['#access'] = FALSE;
     $form['instance']['settings']['file_extensions']['#title'] = t('Allowed file extensions for uploaded files');
+    // Do not increase maxlength of file extensions for image fields, since
+    // presumably they will not need a long list of extensions.
   }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function media_form_wysiwyg_profile_form_alter(&$form, &$form_state) {
+  // Add warnings if the media filter is disabled for the WYSIWYG's text format.
+  $form['buttons']['drupal']['media']['#element_validate'][] = 'media_wysiwyg_button_element_validate';
+  $form['buttons']['drupal']['media']['#after_build'][] = 'media_wysiwyg_button_element_validate';
+  form_load_include($form_state, 'inc', 'media', 'wysiwyg_plugins/media');
 }
 
 /* ***************************************** */
 /* API FUNCTIONS                             */
 /* ***************************************** */
+
+/**
++ * URI callback for file entities.
++ */
+function media_entity_uri($file) {
+  $uri['path'] = 'media/' . $file->fid;
+  return $uri;
+}
 
 /**
  * Load callback for %media_multi placeholder in menu paths.
@@ -699,10 +680,11 @@ if (!function_exists('file_uri_to_object')) {
  */
 function media_library() {
   $path = drupal_get_path('module', 'media');
+  $info = system_get_info('module', 'media');
 
   $common = array(
     'website' => 'http://drupal.org/project/media',
-    'version' => '7.x',
+    'version' => !empty($info['version']) ? $info['version'] : '7.x-1.x',
   );
 
   /**
@@ -753,19 +735,6 @@ function media_library() {
       array('system', 'ui.tabs'),
       array('system', 'ui.draggable'),
       array('system', 'ui.dialog'),
-    ),
-  );
-
-  /**
-   * Resources for interacting with embedded media.
-   */
-  $libraries['media_embed'] = array(
-    'title' => t('Media embed'),
-    'js' => array(
-      $path . '/js/media.embed.js' => array('group' => JS_LIBRARY),
-    ),
-    'css' => array(
-      $path . '/css/media.embed.css' => array('group' => CSS_DEFAULT),
     ),
   );
 
@@ -977,7 +946,7 @@ function media_element_process(&$element, &$form_state, $form) {
     '#type' => 'item',
     '#markup' => $markup,
     '#prefix' => '<div class="preview launcher">',
-    '#suffix' => '</div><a class="button launcher" href="#">' . t(media_variable_get('field_select_media_text')) . '</a><a class="button remove" href="#">' . t(media_variable_get('field_remove_media_text')) . '</a>',
+    '#suffix' => '</div><a class="button launcher" href="#">' . media_variable_get('field_select_media_text') . '</a><a class="button remove" href="#">' . media_variable_get('field_remove_media_text') . '</a>',
   );
 
   /**
@@ -1017,7 +986,7 @@ function media_element_process(&$element, &$form_state, $form) {
   // Media browser attach code.
   $element['#attached']['js'][] = drupal_get_path('module', 'media') . '/js/media.js';
 
-  $settings = array();
+  $setting = array();
   $setting['media']['elements'][$element['#id']] = $element['#media_options'];
 
   $element['#attached']['js'][] = array(
@@ -1045,8 +1014,11 @@ function media_element_validate(&$element, &$form_state) {
     $lang = $element['#language'];
 
     $has_value = FALSE;
-    foreach ($form_state['values'][$field_name][$lang] as $value) {
-      if ($value['fid']) {
+    $widget_parents = $element['#array_parents'];
+    array_pop($widget_parents);
+    $items = drupal_array_get_nested_value($form_state['values'], $widget_parents);
+    foreach ($items as $value) {
+      if (is_array($value) && !empty($value['fid'])) {
         $has_value = TRUE;
       }
     }
@@ -1070,7 +1042,7 @@ function media_element_validate(&$element, &$form_state) {
  */
 function media_filter_info() {
   $filters['media_filter'] = array(
-    'title' => t('Converts Media tags to Markup'),
+    'title' => t('Convert Media tags to markup'),
     'description' => t('This filter will convert [[{type:media... ]] tags into markup.'),
     'process callback' => 'media_filter',
     'weight' => 2,
@@ -1079,7 +1051,7 @@ function media_filter_info() {
 
   // If the WYSIWYG module is enabled, add additional help.
   if (module_exists('wysiwyg')) {
-    $filters['media_filter']['description'] .= ' ' . t('This must be enabled for the WYSIWYG integration to work correctly with this text filter.');
+    $filters['media_filter']['description'] .= ' ' . t('This must be enabled for the Media WYSIWYG integration to work with this input format.');
   }
 
   return $filters;
@@ -1091,7 +1063,7 @@ function media_filter_info() {
  * @param $file
  *  A file object.
  */
-function _media_save_file_permenently(&$file) {
+function _media_save_file_permanently($file) {
   if ($file->status < FILE_STATUS_PERMANENT) {
     $file->status = FILE_STATUS_PERMANENT;
     file_save($file);
@@ -1108,6 +1080,11 @@ function _media_save_file_permenently(&$file) {
  *   Renderable array.
  */
 function media_get_thumbnail_preview($file, $link = NULL) {
+  // If a file has an invalid type, allow file_view_file() to work.
+  if (!file_info_file_types($file->type)) {
+    $file->type = media_get_type($file);
+  }
+
   $preview = file_view_file($file, 'media_preview');
   $preview['#show_names'] = TRUE;
   $preview['#add_link'] = $link;
@@ -1178,6 +1155,23 @@ function media_get_hidden_stream_wrappers() {
 }
 
 /**
+ * Helper function to get a list of local stream wrappers.
+ */
+function media_get_local_stream_wrappers() {
+  return file_get_stream_wrappers(STREAM_WRAPPERS_LOCAL_NORMAL);
+}
+
+/**
+ * Helper function to get a list of remote stream wrappers.
+ */
+function media_get_remote_stream_wrappers() {
+  $wrappers = file_get_stream_wrappers();
+  $wrappers = array_diff_key($wrappers, file_get_stream_wrappers(STREAM_WRAPPERS_LOCAL_NORMAL));
+  $wrappers = array_diff_key($wrappers, file_get_stream_wrappers(STREAM_WRAPPERS_LOCAL_HIDDEN));
+  return $wrappers;
+}
+
+/**
  * Implements hook_views_api().
  */
 function media_views_api() {
@@ -1185,21 +1179,4 @@ function media_views_api() {
     'api' => 3,
     'path' => drupal_get_path('module', 'media') . '/includes',
   );
-}
-
-/**
- * Helper function to determine whether a form has any errors.
- */
-function media_form_has_errors($form) {
-  $error = form_get_error($form);
-  if (!empty($error)) {
-    return TRUE;
-  }
-  $children = element_children($form);
-  foreach ($children as $element) {
-    if (media_form_has_errors($form[$element])) {
-      return TRUE;
-    }
-  }
-  return FALSE;
 }

@@ -1,6 +1,12 @@
 7.x-1.0, unknown release date
 - Ported to 7.x, ticket #804240. Thanks David_Rothstein for contributing
   the initial patch, and Gábor Hojtsy for helping with various other aspects.
+- Removed double caching logic, due to changes in internal caching
+  structure, contributed by catch, partial fix for #993274
+- External images are no longer disabled by default, fixes #925306
+- Fixed #993276; variable_set() called unconditionally in
+  _htmlpurifier_load(), patch contributed by catch
+
 
 6.x-2.4, released 2010-10-23
 - Fixed #839490; can't find library from install profile

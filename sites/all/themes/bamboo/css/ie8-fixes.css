@@ -1,0 +1,44 @@
+/**
+ * @file
+ * IE 8 Style hacks.
+ */
+
+span.drop-arrow {
+  background: url('../images/arrows-ffffff.png') 10px -100px;
+  display: block;
+  height: 10px;
+  position: absolute;
+  right: 1px;
+  top: 13px;
+  width: 11px;
+  z-index: 201;
+}
+
+.menu.ul-depth-1 span.drop-arrow {
+  background: url('../images/arrows-right.png') 10px -2px;
+}
+
+#main-menu ul.menu.ul-depth-0 li.expanded.active-trail {
+  background: #777;
+  background: -moz-linear-gradient(#777, #555);
+  background: -webkit-linear-gradient(#777, #555);
+  background: -o-linear-gradient(#777, #555);
+  background: -ms-linear-gradient(#777, #555);
+  background: linear-gradient(#777, #555);
+  color: #fff;
+}
+
+#main-menu ul.menu.ul-depth-2 li {
+  border-left: 1px dotted #667;
+  left: 207px;
+  position: relative;
+  top: -42px;
+}
+
+#main-menu ul.menu.ul-depth-2 li a {
+  -moz-border-radius-bottomright: 0;
+  -webkit-border-bottom-right-radius: 0;
+  -moz-border-radius-bottomleft: 0;
+  -webkit-border-bottom-left-radius: 0;
+  border-radius: 0;
+}

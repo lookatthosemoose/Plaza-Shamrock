@@ -1,4 +1,3 @@
-
 /**
  * @file
  * Javascript for the interface at admin/content/media and also for interfaces
@@ -14,25 +13,15 @@
  */
 Drupal.behaviors.mediaAdmin = {
   attach: function (context) {
-    // The delete confirmation step is a form rebuild at the same URL
-    // (admin/content/media). For this step, remove the action links, and do
-    // nothing else.
-    if ($('form.media-list-operation', context).length != 0) {
-      // The <li> elements are removed, but the <ul> element is retained to
-      // preserve desired margin.
-      $('ul.action-links li', context).remove();
-      return;
-    }
-
-    var show_confirm_if_existing_selections = function () {
+    // Show a javascript confirmation dialog if a user has files selected and
+    // they try to switch between the "Thumbnail" and "List" local tasks.
+    $('.media-display-switch a').bind('click', function () {
       if ($(':checkbox:checked', $('form#media-admin')).length != 0) {
         return confirm(Drupal.t('If you switch views, you will lose your selection.'));
       }
-    }
+    });
 
-    $('.media-display-switch a').bind('click', show_confirm_if_existing_selections);
-
-    // Add an "Add file" action link.
+    // Configure the "Add file" link to fire the media browser popup.
     var $launcherLink = $('<a class="media-launcher" href="#"></a>').html(Drupal.t('Add file'));
     $launcherLink.bind('click', function () {
       // This option format needs *serious* work.
@@ -50,10 +39,10 @@ Drupal.behaviors.mediaAdmin = {
         return false;
       }, options);
     });
+
     $('ul.action-links', context).prepend($('<li></li>').append($launcherLink));
 
-    // Configure the thumbnail displays.
-    if ($('body.page-admin-content-media-thumbnails').length != 0) {
+    if ($('.media-display-thumbnails').length) {
       // Implements 'select all/none' for thumbnail view.
       // @TODO: Support grabbing more than one page of thumbnails.
       var allLink = $('<a href="#">' + Drupal.t('all') + '</a>')
@@ -153,4 +142,3 @@ Drupal.behaviors.mediaTypesAdmin = {
 
 
 })(jQuery);
-

@@ -17,6 +17,8 @@
  * the JS will respect that when resizing later.
  */
 ?>
-<div class="media-youtube-preview-wrapper media-embed-resize" id="<?php print $wrapper_id; ?>">
-  <?php print $output; ?>
+<div class="media-youtube-outer-wrapper" id="media-youtube-<?php print $id; ?>" style="width: <?php print $width; ?>px; height: <?php print $height; ?>px;">
+  <div class="media-youtube-preview-wrapper" id="<?php print $wrapper_id; ?>">
+    <?php print $output; ?>
+  </div>
 </div>

@@ -27,7 +27,7 @@ function media_oembed_stream_wrappers() {
 function media_oembed_file_formatter_info() {
   $formatters['media_oembed'] = array(
     'label' => t('oEmbed'),
-    'default settings' => array('width' => '560', 'height' => '340', 'wmode' => 'opaque', 'add_source_link' => FALSE),
+    'default settings' => array('width' => '560', 'height' => '340', 'wmode' => 'opaque'),
     'view callback' => 'media_oembed_file_formatter_media_oembed_view',
     'settings callback' => 'media_oembed_file_formatter_media_oembed_settings',
   );
@@ -133,7 +133,6 @@ function media_oembed_file_formatter_media_oembed_view($file, $display, $langcod
       'width' => isset($file->override['width']) ? $file->override['width'] : $display['settings']['width'],
       'height' => isset($file->override['height']) ? $file->override['height'] : $display['settings']['height'],
       'wmode' => isset($file->override['wmode']) ? $file->override['wmode'] : $display['settings']['wmode'],
-      'add_source_link' => $display['settings']['add_source_link'],
     );
     if (empty($options['wmode'])) {
       unset($options['wmode']);
@@ -141,7 +140,6 @@ function media_oembed_file_formatter_media_oembed_view($file, $display, $langcod
 
     // Not a WYSIWYG editor instance.
     if (empty($file->override['wysiwyg'])) {
-      drupal_add_library('media', 'media_embed');
       $element = oembedcore_render_cache('oembed', $url, $options);
     }
 
@@ -179,11 +177,6 @@ function media_oembed_file_formatter_media_oembed_settings($form, &$form_state, 
     '#options' => drupal_map_assoc(array('window', 'transparent', 'opaque', 'direct', 'gpu')),
     '#description' => t('Controls layering, transparency, and playback performance of content rendered by the Flash player. For more information, view <a href="http://kb2.adobe.com/cps/127/tn_12701.html#main_Using_Window_Mode__wmode__values_">Adobe\'s documentation</a>.'),
     '#default_value' => $settings['wmode'],
-  );
-  $element['add_source_link'] = array(
-    '#title' => t('Include a link to the original media source.'),
-    '#type' => 'checkbox',
-    '#default_value' => $settings['add_source_link'],
   );
   return $element;
 }
@@ -238,16 +231,11 @@ function media_oembed_media_parse($url, $options = array()) {
  * Implements hook_media_internet_providers();
  */
 function media_oembed_media_internet_providers() {
-  $path = drupal_get_path('module', 'media_oembed');
-  return array(
-    'MediaInternetOEmbedHandler' => array(
-      'title' => 'oEmbed',
-    ),
+  $info['MediaInternetOEmbedHandler'] = array(
+    'title' => t('oEmbed'),
   );
-}
 
-function media_oembed_preprocess_oembed(&$vars) {
-  $vars['classes_array'][] = 'media-embed-resize';
+  return $info;
 }
 
 /**
@@ -285,55 +273,5 @@ function media_oembed_cache_clear($fids) {
       $cid = $type . ':' . $hashed_url . ':';
       cache_clear_all($cid, 'cache_oembed', TRUE);
     }
-  }
-}
-
-class MediaInternetOEmbedHandler extends MediaInternetBaseHandler {
-
-  /**
-   * Claim this URL.
-   */
-  public function claim($embedCode) {
-    $matches = array();
-    if (oembedcore_get_provider($embedCode, $matches)) {
-      return TRUE;
-    }
-  }
-
-  /**
-   * Returns a file object which can be used for validation
-   *
-   * @return StdClass
-   */
-  public function getFileObject() {
-    $uri = 'oembed://'. drupal_encode_path($this->embedCode);
-    return file_uri_to_object($uri, TRUE);
-  }
-
-  /**
-   * Before the file has been saved, implementors may do additional operations.
-   */
-  public function preSave(&$file_obj) {
-    $url = rawurldecode(substr($file_obj->uri, 9));
-    $embed = oembedcore_oembed_data($url);
-    if (!empty($embed->title)) {
-      $file_obj->filename = $embed->title;
-    }
-    // If a user enters a duplicate embed code, the object will be saved again.
-    // Set the timestamp to the current time, so that the media item shows up
-    // at the top of the media library, where they would expect to see it.
-    $file_obj->timestamp = REQUEST_TIME;
-  }
-
-  /**
-   * Returns an array representation of the oEmbed data, or NULL on failure.
-   *
-   * An example project that calls this method is Media Browser Plus
-   * (http://drupal.org/project/media_browser_plus). Other projects may do so
-   * in the future.
-   */
-  public function getOEmbed() {
-    $embed = oembedcore_oembed_data($this->embedCode);
-    return $embed ? (array) $embed : NULL;
   }
 }

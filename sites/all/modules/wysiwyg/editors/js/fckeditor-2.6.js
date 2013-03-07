@@ -8,7 +8,6 @@ Drupal.wysiwyg.editor.attach.fckeditor = function(context, params, settings) {
   // Apply editor instance settings.
   FCKinstance.BasePath = settings.EditorPath;
   FCKinstance.Config.wysiwygFormat = params.format;
-  FCKinstance.Config.wysiwygField = params.field;
   FCKinstance.Config.CustomConfigurationsPath = settings.CustomConfigurationsPath;
 
   // Load Drupal plugins and apply format specific settings.
@@ -23,7 +22,6 @@ Drupal.wysiwyg.editor.attach.fckeditor = function(context, params, settings) {
  * Detach a single or all editors.
  */
 Drupal.wysiwyg.editor.detach.fckeditor = function (context, params, trigger) {
-  trigger = trigger || 'unload';
   var instances = [];
   if (typeof params != 'undefined' && typeof FCKeditorAPI != 'undefined') {
     var instance = FCKeditorAPI.GetInstance(params.field);
@@ -182,6 +180,16 @@ Drupal.wysiwyg.editor.instance.fckeditor = {
     var instance = FCKeditorAPI.GetInstance(this.field);
     // @see FCK.InsertHtml(), FCK.InsertElement()
     instance.InsertHtml(content);
+  },
+
+  getContent: function () {
+    var instance = FCKeditorAPI.GetInstance(this.field);
+    return instance.GetData();
+  },
+
+  setContent: function (content) {
+    var instance = FCKeditorAPI.GetInstance(this.field);
+    instance.SetHTML(content);
   }
 };
 

@@ -11,35 +11,19 @@ Drupal.media.browser.selectionFinalized = function (selectedMedia) {
 };
 
 Drupal.behaviors.experimentalMediaBrowser = {
-  attach: function (context, settings) {
-    var active, index, plugins, tabSettings;
-    if (settings.media.selectedMedia) {
+  attach: function (context) {
+    if (Drupal.settings.media.selectedMedia) {
       Drupal.media.browser.selectMedia(Drupal.settings.media.selectedMedia);
       // Fire a confirmation of some sort.
       Drupal.media.browser.finalizeSelection();
     }
-    // If one of the plugins has requested that its tab be active (after a
-    // validation error, for example) make that the active tab.
-    plugins = settings.media.browser;
-    $.each(plugins, function (pluginName) {
-      if (this.active) {
-        active = pluginName;
-      }
+    $('#media-browser-tabset').tabs({
+      load: Drupal.media.browser.resizeIframe
     });
-    tabSettings = {
-      show: Drupal.media.browser.resizeIframe
-    };
-    if (active) {
-      // To set a tab as selected, we have to first find its zero-based index
-      // within the list of tabs.
-      var tab = $('a#media-tab-' + active + '-link');
-      index = $('#media-browser-tabset a').index(tab);
-      if (index > -1) {
-        tabSettings.selected = index;
-      }
-    }
-    $('#media-browser-tabset', context).tabs(tabSettings);
+
     $('.media-browser-tab').each( Drupal.media.browser.validateButtons );
+
+    Drupal.media.browser.selectErrorTab();
 
   }
   // Wait for additional params to be passed in.
@@ -74,16 +58,16 @@ Drupal.media.browser.validateButtons = function() {
   //
   // @todo An alternate, less hacky solution would be most welcome.
   if (!($('.form-submit', this).length > 0)) {
-    $('<a class="button fake-ok">' + Drupal.t('Submit') + '</a>').appendTo(this).bind('click', Drupal.media.browser.submit);
+    $('<a class="button button-yes fake-ok">' + Drupal.t('Submit') + '</a>').appendTo(this).bind('click', Drupal.media.browser.submit);
     if (!($('.fake-cancel', this).length > 0)) {
-      $('<a class="button fake-cancel">' + Drupal.t('Cancel') + '</a>').appendTo(this).bind('click', Drupal.media.browser.submit);
+      $('<a class="button button-no fake-cancel">' + Drupal.t('Cancel') + '</a>').appendTo(this).bind('click', Drupal.media.browser.submit);
     }
   } else if (!($('.fake-cancel', this).length > 0)) {
     var parent = $('.form-actions', this);
     if (!parent.length) {
       parent = $('form > div', this);
     }
-    $('<a class="button fake-cancel">' + Drupal.t('Cancel') + '</a>').appendTo(parent).bind('click', Drupal.media.browser.submit);
+    $('<a class="button button-no fake-cancel">' + Drupal.t('Cancel') + '</a>').appendTo(parent).bind('click', Drupal.media.browser.submit);
   }
 };
 
@@ -114,5 +98,22 @@ Drupal.media.browser.resizeIframe = function (event) {
   var h = $('body').height();
   $(parent.window.document).find('#mediaBrowser').height(h);
 };
+
+Drupal.media.browser.selectErrorTab = function() {
+  //Find the ID of a tab with an error in it
+  var errorTabID = $('#media-browser-tabset')
+    .find('.error')
+    .parents('.media-browser-tab')
+    .attr('id');
+
+  if (errorTabID !== undefined) {
+    //Find the Tab Link with errorTabID
+    var tab = $('a[href="#' + errorTabID + '"]');
+    //Find the index of the tab
+    var index = $('#media-browser-tabset a').index(tab);
+    //Select the tab
+    $('#media-browser-tabset').tabs('select', index)
+  }
+}
 
 }(jQuery));

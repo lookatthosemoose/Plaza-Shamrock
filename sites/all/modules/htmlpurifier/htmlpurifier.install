@@ -1,5 +1,8 @@
 <?php
-
+/**
+ * @file
+ * Install, update and uninstall functions for the HTML Purifier module.
+ */
 /**
  * Implements hook_schema().
  */
@@ -45,23 +48,24 @@ function htmlpurifier_requirements($phase) {
   }
 
   // If it's still not available, use something else
-  $complain_loc = false;
+  $complain_loc = FALSE;
   if (function_exists('libraries_get_path')) {
     $library_path = libraries_get_path('htmlpurifier');
-    $using_libraries = true;
+    $using_libraries = TRUE;
     if (!file_exists("$library_path/library/HTMLPurifier.auto.php")) {
       $library_path = dirname(__FILE__);
-      $complain_loc = true;
-      $using_libraries = false;
+      $complain_loc = TRUE;
+      $using_libraries = FALSE;
     }
-  } else {
+  }
+  else {
     $library_path = dirname(__FILE__);
-    $using_libraries = false;
+    $using_libraries = FALSE;
   }
 
   $s = DIRECTORY_SEPARATOR;
   if (!file_exists("$library_path/library/HTMLPurifier.auto.php")) {
-    $requirements['htmlpurifier_library'] = array (
+    $requirements['htmlpurifier_library'] = array(
       'title' => $t('HTML Purifier library'),
       'severity' => REQUIREMENT_ERROR,
       'description' => $t("Could not find HTML Purifier
@@ -108,14 +112,15 @@ function htmlpurifier_requirements($phase) {
       require_once "$library_path/library/HTMLPurifier.auto.php";
       if (defined('HTMLPurifier::VERSION')) {
         $version = HTMLPurifier::VERSION;
-      } else {
+      }
+      else {
         $purifier = new HTMLPurifier;
         $version = $purifier->version;
       }
       variable_set('htmlpurifier_version_ours', $version);
       if (version_compare($version, $req_version, '<')) {
 
-        $requirements['htmlpurifier_library'] = array (
+        $requirements['htmlpurifier_library'] = array(
           'title' => $t('HTML Purifier library'),
           'severity' => REQUIREMENT_ERROR,
           'description' => $t("HTML Purifier @old is not compatible
@@ -163,7 +168,8 @@ function htmlpurifier_requirements($phase) {
         <code>%path</code> with the new directory the downloaded archive
         extracts into. ',
           array('%path' => libraries_get_path('htmlpurifier')));
-      } else {
+      }
+      else {
         $how_to_update = $t('To update, replace
         <code>%path/library/</code> with the <code>library/</code>
         directory from the downloaded archive. ',
@@ -189,7 +195,7 @@ function htmlpurifier_requirements($phase) {
       );
     }
   }
- 
+
   return $requirements;
 }
 
@@ -216,17 +222,94 @@ function htmlpurifier_update_6200() {
     }
     variable_set("htmlpurifier_config_$format", $config_data);
   }
-  
+
   return array();
 }
 
 function htmlpurifier_update_6201() {}
 
 /**
- * TODO: Perform the D6->D7 upgrade.
  *
- * We need to update filter names and settings, in the same way that
- * filter_update_7003() and filter_update_7004() do.
+ * Migrate filter settings into D7 format from D6
  */
-// function htmlpurifier_update_7000() {
-// }
+function htmlpurifier_update_7000() {
+  // Make sure {d6_upgrade_filter} exists. It won't exist for people on
+  // native D7 sites (not upgraded from D6).
+  $d6_table = 'd6_upgrade_filter';
+  $module = 'htmlpurifier';
+  if (db_table_exists($d6_table)) {
+    $query = db_select($d6_table)
+      ->fields($d6_table, array('format', 'weight', 'delta'))
+      ->condition('module', $module)
+      ->distinct();
+    foreach ($query->execute() as $record) {
+      // Pull out the filter settings from variables
+      $settings = array();
+      $settings['htmlpurifier_help'] = variable_get("htmlpurifier_help_{$record->format}", NULL);
+      variable_del("htmlpurifier_help_{$record->format}");
+      $settings['htmlpurifier_basic_config'] = variable_get("htmlpurifier_config_{$record->format}", NULL);
+      variable_del("htmlpurifier_config_{$record->format}");
+      // Determine the filter type (basic/advanced)
+      $filter_name = $module . "_basic";
+      if ($record->delta == '1') {
+        $filter_name = $module . "_advanced";
+      }
+      // Store away in the new D7 manner
+      db_insert('filter')
+        ->fields(array(
+          'format' => $record->format,
+          'module' => $module,
+          'name' => $filter_name,
+          'weight' => $record->weight,
+          'settings' => serialize($settings),
+          'status' => 1,
+        ))
+        ->execute();
+      }
+    // Double caching was removed in D7
+    variable_del(variable_get("htmlpurifier_doublecache", NULL));
+    // Remove all entries from the migration table
+    db_delete($d6_table)
+      ->condition('module', $module)
+      ->execute();
+    // Drop d6 migration table if it is empty
+    $count = db_select($d6_table)
+      ->fields($d6_table, array('fid'))
+      ->countQuery()
+      ->execute()
+      ->fetchField();
+    if ($count === 0) {
+      db_drop_table($d6_table);
+    }
+  }
+}
+/**
+ * Clean up the D6 cache_htmlpurifier schema since it was a clone of the system cache schema
+ */
+function htmlpurifier_update_7001() {
+  if (db_field_exists('cache_htmlpurifier', 'headers')) {
+    db_drop_field('cache_htmlpurifier', 'headers');
+  }
+}
+/**
+ * Load and resave all text formats to update cache settings.
+ *
+ * This update will only work for 7-7 updates and will need to be run again
+ * once there is a 6-7 upgrade path.
+ *
+ * @see http://drupal.org/node/993230
+ */
+function htmlpurifier_update_7002() {
+  $formats = filter_formats();
+  foreach ($formats as $format) {
+    $format->filters = filter_list_format($format->format);
+    // filter_format_save() expects filters to be an array, however
+    // filter_list_format() gives us objects.
+    foreach ($format->filters as $key => $value) {
+      $format->filters[$key] = (array) $value;
+    }
+    filter_format_save($format);
+  }
+}
+// vim: syntax=php
+

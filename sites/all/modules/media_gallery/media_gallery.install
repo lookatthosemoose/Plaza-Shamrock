@@ -60,7 +60,7 @@ function media_gallery_install() {
   cache_clear_all('*', 'cache', TRUE);
   drupal_static_reset('image_styles');
   drupal_static_reset('image_effects');
-  if (module_exists('styles')) {
+  if (module_exists('styles') && function_exists('styles_style_flush')) {
     styles_style_flush();
   }
 

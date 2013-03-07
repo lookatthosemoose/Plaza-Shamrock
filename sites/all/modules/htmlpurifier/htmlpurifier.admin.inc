@@ -1,5 +1,4 @@
 <?php
-// $Id: htmlpurifier.admin.inc,v 1.1.2.1 2010/10/27 17:13:19 ezyang Exp $
 
 /**
  * @file

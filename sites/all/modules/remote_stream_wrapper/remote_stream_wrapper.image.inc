@@ -2,25 +2,21 @@
 
 /**
  * Copy of image_style_deliver() for use with remote images.
- *
- * @see remote_stream_wrapper_image_style_path()
  */
-function remote_stream_wrapper_image_style_deliver($style, $scheme, $host, $filename) {
-  list($hash, $extension) = explode('.', $filename, 2);
+function remote_stream_wrapper_image_style_deliver($style, $scheme) {
+  $args = func_get_args();
+  array_shift($args);
+  array_shift($args);
+  $target = implode('/', $args);
 
-  // Only process remote URLs for which remote_stream_wrapper_image_style_path()
-  // (e.g., via theme('image_style')) has been invoked. Otherwise, the website
-  // is open to any user processing any remote URL.
-  $image_uri = db_select('remote_stream_wrapper_url', 'rswu')->fields('rswu', array('url'))->condition('id', $hash)->execute()->fetchField();
-  if (!isset($image_uri)) {
-    return MENU_NOT_FOUND;
-  }
+  $image_uri = $scheme . '://' . $target;
+  $derivative_uri = remote_stream_wrapper_image_style_path($style['name'], $image_uri);
 
-  // Ensure the derivative URI requested matches the one returned by
-  // remote_stream_wrapper_image_style_path().
-  $derivative_uri = file_default_scheme() . '://styles/' . $style['name'] . '/' . $scheme . '/' . $host . '/' . $filename;
-  if ($derivative_uri !== remote_stream_wrapper_image_style_path($style['name'], $image_uri)) {
-    return MENU_NOT_FOUND;
+  // Prevent only the remote files that exist in {file_managed} from having
+  // image style derivatives generated. Otherwise this could open up the site
+  // to allowing any remote file to be processed.
+  if (!remote_stream_wrapper_file_load_by_uri($image_uri)) {
+    return MENU_ACCESS_DENIED;
   }
 
   // Don't start generating the image if the derivative already exists or if

@@ -62,22 +62,23 @@ function dialog_display($options = NULL) {
  * Implement hook_library().
  */
 function dialog_library() {
+  $path = drupal_get_path('module', 'dialog');
+
   $libraries['dialog'] = array(
     'title' => 'Dialog',
     'website' => 'http://drupal.org/project/dialog',
     'version' => '7.x',
     'js' => array(
-      'misc/ajax.js' => array('weight' => JS_DEFAULT - 5),
-      drupal_get_path('module', 'dialog') . '/dialog.js' => array('weight' => JS_DEFAULT + 5),
-      drupal_get_path('module', 'dialog') . '/jquery.xLazyLoader.js' => array('weight' => JS_LIBRARY),
+      $path . '/jquery.xLazyLoader.js' => array('group' => JS_LIBRARY),
+      $path . '/dialog.js' => array('weight' => 5),
     ),
     'dependencies' => array(
-      array('system', 'form'),
-      array('system', 'ui.resizable'),
-      array('system', 'ui.draggable'),
+      array('system', 'drupal.ajax'),
+      array('system', 'jquery.form'),
       array('system', 'ui.dialog'),
     ),
   );
+
   return $libraries;
 }
 

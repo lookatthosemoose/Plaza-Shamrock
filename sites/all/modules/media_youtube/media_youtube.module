@@ -15,16 +15,16 @@
  */
 
 // A registry of variable_get defaults.
-include_once('includes/media_youtube.variables.inc');
+include_once DRUPAL_ROOT . '/' . drupal_get_path('module', 'media_youtube') . '/includes/media_youtube.variables.inc';
 
 // Hooks and callbacks for integrating with Styles module for display.
 // @todo Can save a little overhead for people without Styles module by wrapping
 //   this inside a module_exists('styles'). However, is that safe to do in
 //   global context? If not, is there any down side to doing it in hook_init()?
-include_once('includes/media_youtube.styles.inc');
+include_once DRUPAL_ROOT . '/' . drupal_get_path('module', 'media_youtube') . '/includes/media_youtube.styles.inc';
 
 // Hooks and callbacks for integrating with File Entity module for display.
-include_once('includes/media_youtube.formatters.inc');
+include_once DRUPAL_ROOT . '/' . drupal_get_path('module', 'media_youtube') . '/includes/media_youtube.formatters.inc';
 
 /**
  * Implements hook_media_internet_providers().
@@ -68,8 +68,9 @@ function media_youtube_theme($existing, $type, $theme, $path) {
       'file' => 'media_youtube.theme.inc',
       'path' => $path . '/includes/themes',
     ),
+    // Note that all the variables after options are now deprecated.
     'media_youtube_video' => array(
-      'variables' => array('uri' => NULL, 'width' => NULL, 'height' => NULL, 'autoplay' => NULL, 'fullscreen' => NULL),
+      'variables' => array('uri' => NULL, 'options' => array(), 'width' => NULL, 'height' => NULL, 'autoplay' => NULL, 'fullscreen' => NULL, 'related' => NULL),
       'file' => 'media_youtube.theme.inc',
       'path' => $path . '/includes/themes',
       'template' => 'media-youtube-video',
@@ -97,24 +98,6 @@ function media_youtube_theme($existing, $type, $theme, $path) {
 function media_youtube_media_parse($embed_code) {
   $handler = new MediaInternetYouTubeHandler($embed_code);
   return $handler->parse($embed_code);
-}
-
-/**
- * Implements hook_form_FORM_ID_alter().
- *
- * Adds a link to the YouTube video below the preview thumbnail in the media
- * edit form.
- */
-function media_youtube_form_media_edit_alter(&$form, &$form_state) {
-  // @todo Integrate this better into media or media_internet module.
-  $media = $form_state['build_info']['args'][0];
-  if ($media->filemime == 'video/youtube' && isset($form['preview'][0])) {
-    if (!isset($form['preview'][0]['#suffix'])) {
-      $form['preview'][0]['#suffix'] = '';
-    }
-    $url = drupal_realpath($media->uri);
-    $form['preview'][0]['#suffix'] .= l($url, $url);
-  }
 }
 
 /**

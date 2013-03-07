@@ -25,10 +25,6 @@
 
 /* @group Inline lists */
 
-.horizontal-container {
-  float: left; /* LTR */
-}
-
 .horizontal > * {
   clear: none;
   float: left; /* LTR */

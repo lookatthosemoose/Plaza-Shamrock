@@ -31,8 +31,8 @@ function image_image_effect_info() {
       'help' => t('Scale and crop will maintain the aspect-ratio of the original image, then crop the larger dimension. This is most useful for creating perfectly square thumbnails without stretching the image.'),
       'effect callback' => 'image_scale_and_crop_effect',
       'dimensions callback' => 'image_resize_dimensions',
-      'form callback' => 'image_scale_and_crop_form',
-      'summary theme' => 'image_scale_and_crop_summary',
+      'form callback' => 'image_resize_form',
+      'summary theme' => 'image_resize_summary',
     ),
     'image_crop' => array(
       'label' => t('Crop'),
@@ -124,12 +124,10 @@ function image_resize_dimensions(array &$dimensions, array $data) {
 function image_scale_effect(&$image, $data) {
   // Set sane default values.
   $data += array(
+    'width' => NULL,
+    'height' => NULL,
     'upscale' => FALSE,
   );
-
-  // Set impossibly large values if the width and height aren't set.
-  $data['width'] = empty($data['width']) ? PHP_INT_MAX : $data['width'];
-  $data['height'] = empty($data['height']) ? PHP_INT_MAX : $data['height'];
 
   if (!image_scale($image, $data['width'], $data['height'], $data['upscale'])) {
     watchdog('image', 'Image scale failed using the %toolkit toolkit on %path (%mimetype, %dimensions)', array('%toolkit' => $image->toolkit, '%path' => $image->source, '%mimetype' => $image->info['mime_type'], '%dimensions' => $image->info['width'] . 'x' . $image->info['height']), WATCHDOG_ERROR);
@@ -202,17 +200,12 @@ function image_crop_effect(&$image, $data) {
  *   with the following items:
  *   - "width": An integer representing the desired width in pixels.
  *   - "height": An integer representing the desired height in pixels.
- *   - "upscale": A Boolean indicating that the image should be upscaled if
- *     the dimensions are larger than the original image.
  * @return
  *   TRUE on success. FALSE on failure to scale and crop image.
  * @see image_scale_and_crop()
  */
 function image_scale_and_crop_effect(&$image, $data) {
-  if (!isset($data['upscale'])) {
-    $data['upscale'] = TRUE;
-  }
-  if (!image_scale_and_crop($image, $data['width'], $data['height'], $data['upscale'])) {
+  if (!image_scale_and_crop($image, $data['width'], $data['height'])) {
     watchdog('image', 'Image scale and crop failed using the %toolkit toolkit on %path (%mimetype, %dimensions)', array('%toolkit' => $image->toolkit, '%path' => $image->source, '%mimetype' => $image->info['mime_type'], '%dimensions' => $image->info['width'] . 'x' . $image->info['height']), WATCHDOG_ERROR);
     return FALSE;
   }

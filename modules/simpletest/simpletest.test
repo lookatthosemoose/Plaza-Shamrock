@@ -20,10 +20,7 @@ class SimpleTestFunctionalTest extends DrupalWebTestCase {
   public static function getInfo() {
     return array(
       'name' => 'SimpleTest functionality',
-      'description' => 'Test SimpleTest\'s web interface: check that the intended tests were
-                          run and ensure that test reports display the intended results. Also
-                          test SimpleTest\'s internal browser and API\'s both explicitly and
-                          implicitly.',
+      'description' => "Test SimpleTest's web interface: check that the intended tests were run and ensure that test reports display the intended results. Also test SimpleTest's internal browser and API's both explicitly and implicitly.",
       'group' => 'SimpleTest'
     );
   }
@@ -325,16 +322,6 @@ class SimpleTestFunctionalTest extends DrupalWebTestCase {
  * Test internal testing framework browser.
  */
 class SimpleTestBrowserTestCase extends DrupalWebTestCase {
-  /**
-   * Stores the value of $GLOBALS['base_root'] before the test modifies it.
-   */
-  protected $base_root;
-
-  /**
-   * Stores the value of $GLOBALS['base_url'] before the test modifies it.
-   */
-  protected $base_url;
-
   public static function getInfo() {
     return array(
       'name' => 'SimpleTest browser',
@@ -346,62 +333,30 @@ class SimpleTestBrowserTestCase extends DrupalWebTestCase {
   function setUp() {
     parent::setUp();
     variable_set('user_register', USER_REGISTER_VISITORS);
-    // Store the original values of the global $base_root and $base_url
-    // variables so we can restore them after they are modified by the test.
-    $this->base_root = $GLOBALS['base_root'];
-    $this->base_url = $GLOBALS['base_url'];
-  }
-
-  function tearDown() {
-    // Restore the original values of the global $base_root and $base_url
-    // variables.
-    $GLOBALS['base_root'] = $this->base_root;
-    $GLOBALS['base_url'] = $this->base_url;
-    parent::tearDown();
   }
 
   /**
    * Test DrupalWebTestCase::getAbsoluteUrl().
    */
   function testGetAbsoluteUrl() {
-    // Store the URLs of the pages we will direct the internal browser to visit
-    // during this test. Force them to be http:// URLs regardless of the
-    // environment the test is running in.
-    variable_set('https', TRUE);
-    $user_login_absolute_url = url('user/login', array('absolute' => TRUE, 'https' => FALSE));
-    $user_register_absolute_url = url('user/register', array('absolute' => TRUE, 'https' => FALSE));
+    // Testbed runs with Clean URLs disabled, so disable it here.
+    variable_set('clean_url', 0);
+    $url = 'user/login';
 
-    // Test that the internal browser always stores the correct URLs for the
-    // location it is pointed at. For example, the URLs should use http:// if
-    // the internal browser is visiting an http:// version of the site,
-    // regardless of whether the parent site (that is running the tests) is on
-    // http:// or https://. This behavior is tested here by modifying the
-    // global $base_root and $base_url variables on the parent site and
-    // verifying that this does not affect the URLs seen by the internal
-    // browser.
-    foreach (array(TRUE, FALSE) as $https_on) {
-      // Simulate the parent site as either http:// or https://.
-      $scheme = $https_on ? 'https' : 'http';
-      $GLOBALS['base_root'] = preg_replace('@^https?://@', "$scheme://", $GLOBALS['base_root']);
-      $GLOBALS['base_url'] = preg_replace('@^https?://@', "$scheme://", $GLOBALS['base_url']);
+    $this->drupalGet($url);
+    $absolute = url($url, array('absolute' => TRUE));
+    $this->assertEqual($absolute, $this->url, t('Passed and requested URL are equal.'));
+    $this->assertEqual($this->url, $this->getAbsoluteUrl($this->url), t('Requested and returned absolute URL are equal.'));
 
-      // Visit the http:// version of the user/login page and verify that's
-      // where the browser thinks it's at.
-      $this->drupalGet('user/login', array('https' => FALSE));
-      $this->assertEqual($user_login_absolute_url, $this->url, t('Passed and requested URL are equal.'));
-      $this->assertEqual($this->url, $this->getAbsoluteUrl($this->url), t('Requested and returned absolute URL are equal.'));
+    $this->drupalPost(NULL, array(), t('Log in'));
+    $this->assertEqual($absolute, $this->url, t('Passed and requested URL are equal.'));
+    $this->assertEqual($this->url, $this->getAbsoluteUrl($this->url), t('Requested and returned absolute URL are equal.'));
 
-      // Submit a form and verify that we remain on the correct http:// URL.
-      $this->drupalPost(NULL, array(), t('Log in'));
-      $this->assertEqual($user_login_absolute_url, $this->url, t('Passed and requested URL are equal.'));
-      $this->assertEqual($this->url, $this->getAbsoluteUrl($this->url), t('Requested and returned absolute URL are equal.'));
-
-      // Click a link to go to user/register, and verify that we are on the
-      // correct http:// URL there too.
-      $this->clickLink('Create new account');
-      $this->assertEqual($user_register_absolute_url, $this->url, t('Passed and requested URL are equal.'));
-      $this->assertEqual($this->url, $this->getAbsoluteUrl($this->url), t('Requested and returned absolute URL are equal.'));
-    }
+    $this->clickLink('Create new account');
+    $url = 'user/register';
+    $absolute = url($url, array('absolute' => TRUE));
+    $this->assertEqual($absolute, $this->url, t('Passed and requested URL are equal.'));
+    $this->assertEqual($this->url, $this->getAbsoluteUrl($this->url), t('Requested and returned absolute URL are equal.'));
   }
 
   /**
@@ -543,5 +498,160 @@ class SimpleTestMissingDependentModuleUnitTest extends DrupalUnitTestCase {
    */
   function testFail() {
     $this->fail(t('Running test with missing required module.'));
+  }
+}
+
+/**
+ * Tests a test case that does not run parent::setUp() in its setUp() method.
+ *
+ * If a test case does not call parent::setUp(), running
+ * DrupalTestCase::tearDown() would destroy the main site's database tables.
+ * Therefore, we ensure that tests which are not set up properly are skipped.
+ *
+ * @see DrupalTestCase
+ */
+class SimpleTestBrokenSetUp extends DrupalWebTestCase {
+  public static function getInfo() {
+    return array(
+      'name' => 'Broken SimpleTest method',
+      'description' => 'Tests a test case that does not call parent::setUp().',
+      'group' => 'SimpleTest'
+    );
+  }
+
+  function setUp() {
+    // If the test is being run from the main site, set up normally.
+    if (!drupal_valid_test_ua()) {
+      parent::setUp('simpletest');
+      // Create and log in user.
+      $admin_user = $this->drupalCreateUser(array('administer unit tests'));
+      $this->drupalLogin($admin_user);
+    }
+    // If the test is being run from within simpletest, set up the broken test.
+    else {
+      $this->pass(t('The test setUp() method has been run.'));
+      // Don't call parent::setUp(). This should trigger an error message.
+    }
+  }
+
+  function tearDown() {
+    // If the test is being run from the main site, tear down normally.
+    if (!drupal_valid_test_ua()) {
+      parent::tearDown();
+    }
+    else {
+      // If the test is being run from within simpletest, output a message.
+      $this->pass(t('The tearDown() method has run.'));
+    }
+  }
+
+  /**
+   * Runs this test case from within the simpletest child site.
+   */
+  function testBreakSetUp() {
+    // If the test is being run from the main site, run it again from the web
+    // interface within the simpletest child site.
+    if (!drupal_valid_test_ua()) {
+      $edit['SimpleTestBrokenSetUp'] = TRUE;
+      $this->drupalPost('admin/config/development/testing', $edit, t('Run tests'));
+
+      // Verify that the broken test and its tearDown() method are skipped.
+      $this->assertRaw(t('The test setUp() method has been run.'));
+      $this->assertRaw(t('The test cannot be executed because it has not been set up properly.'));
+      $this->assertNoRaw(t('The test method has run.'));
+      $this->assertNoRaw(t('The tearDown() method has run.'));
+    }
+    // If the test is being run from within simpletest, output a message.
+    else {
+      $this->pass(t('The test method has run.'));
+    }
+  }
+}
+
+/**
+ * Verifies that tests bundled with installation profile modules are found.
+ */
+class SimpleTestInstallationProfileModuleTestsTestCase extends DrupalWebTestCase {
+  /**
+   * Use the Testing profile.
+   *
+   * The Testing profile contains drupal_system_listing_compatible_test.test,
+   * which attempts to:
+   * - run tests using the Minimal profile (which does not contain the
+   *   drupal_system_listing_compatible_test.module)
+   * - but still install the drupal_system_listing_compatible_test.module
+   *   contained in the Testing profile.
+   *
+   * @see DrupalSystemListingCompatibleTestCase
+   */
+  protected $profile = 'testing';
+
+  public static function getInfo() {
+    return array(
+      'name' => 'Installation profile module tests',
+      'description' => 'Verifies that tests bundled with installation profile modules are found.',
+      'group' => 'SimpleTest',
+    );
+  }
+
+  function setUp() {
+    parent::setUp(array('simpletest'));
+
+    $this->admin_user = $this->drupalCreateUser(array('administer unit tests'));
+    $this->drupalLogin($this->admin_user);
+  }
+
+  /**
+   * Tests existence of test case located in an installation profile module.
+   */
+  function testInstallationProfileTests() {
+    $this->drupalGet('admin/config/development/testing');
+    $this->assertText('Installation profile module tests helper');
+    $edit = array(
+      'DrupalSystemListingCompatibleTestCase' => TRUE,
+    );
+    $this->drupalPost(NULL, $edit, t('Run tests'));
+    $this->assertText('DrupalSystemListingCompatibleTestCase test executed.');
+  }
+}
+
+/**
+ * Verifies that tests in other installation profiles are not found.
+ *
+ * @see SimpleTestInstallationProfileModuleTestsTestCase
+ */
+class SimpleTestOtherInstallationProfileModuleTestsTestCase extends DrupalWebTestCase {
+  /**
+   * Use the Minimal profile.
+   *
+   * The Testing profile contains drupal_system_listing_compatible_test.test,
+   * which should not be found.
+   *
+   * @see SimpleTestInstallationProfileModuleTestsTestCase
+   * @see DrupalSystemListingCompatibleTestCase
+   */
+  protected $profile = 'minimal';
+
+  public static function getInfo() {
+    return array(
+      'name' => 'Other Installation profiles',
+      'description' => 'Verifies that tests in other installation profiles are not found.',
+      'group' => 'SimpleTest',
+    );
+  }
+
+  function setUp() {
+    parent::setUp(array('simpletest'));
+
+    $this->admin_user = $this->drupalCreateUser(array('administer unit tests'));
+    $this->drupalLogin($this->admin_user);
+  }
+
+  /**
+   * Tests that tests located in another installation profile do not appear.
+   */
+  function testOtherInstallationProfile() {
+    $this->drupalGet('admin/config/development/testing');
+    $this->assertNoText('Installation profile module tests helper');
   }
 }
