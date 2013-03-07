@@ -2,7 +2,8 @@
 sites/*/settings*.php
 
 # Ignore paths that contain user-generated content.
-sites/*/files
+sites/*/files/js
+sites/*/files/css
 #sites/*/private
 .buildpath
 .settings
